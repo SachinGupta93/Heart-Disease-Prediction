@@ -10,12 +10,15 @@ node_modules/
 /build
 /dist
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment variables - include ALL .env files
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# Make sure to exclude backend .env too
+backend/.env
 heart-disease-frontend/.env
 
 # Logs
@@ -24,6 +27,30 @@ yarn-debug.log*
 yarn-error.log*
 logs
 *.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Editor directories and files
 .idea/
@@ -42,30 +69,6 @@ logs
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Python
-__pycache__/
-*.py[cod]
-*.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-venv/
-ENV/
 
 # Firebase
 .firebase/
