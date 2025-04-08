@@ -1,0 +1,144 @@
+.container {
+  background-color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.heading {
+  color: #2c5282;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.section {
+  margin: 2rem 0;
+}
+
+.sectionHeading {
+  color: #2b6cb0;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #ebf8ff;
+}
+
+.accordion {
+  margin-top: 1.5rem;
+}
+
+.accordionItem {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.accordionButton {
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.accordionButton:hover {
+  background-color: #f7fafc;
+}
+
+.accordionPanel {
+  padding: 1rem;
+  background-color: #f7fafc;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.tipCard {
+  background-color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.tipCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tipIconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.resourceLink {
+  text-decoration: none;
+  width: 100%;
+}
+
+.resourceCard {
+  background-color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.resourceCard:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: #ebf8ff;
+}
+
+.disclaimerBox {
+  background-color: #ebf8ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.spinner {
+  color: #3182ce;
+}
+
+.errorAlert {
+  margin-bottom: 1.5rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .section {
+    margin: 1rem 0;
+  }
+
+  .sectionHeading {
+    font-size: 1.5rem;
+  }
+
+  .accordionButton {
+    font-size: 1rem;
+  }
+}

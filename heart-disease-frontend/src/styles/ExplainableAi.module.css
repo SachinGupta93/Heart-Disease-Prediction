@@ -1,0 +1,96 @@
+.container {
+  background-color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.heading {
+  color: #2c5282;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.explanationContainer, .contributionsContainer {
+  margin: 2rem 0;
+}
+
+.predictionBox {
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.predictionBox:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.featureCard {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: white;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.featureCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.progressBar {
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.infoBox {
+  background-color: #ebf8ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.spinner {
+  color: #3182ce;
+}
+
+.infoAlert {
+  background-color: #ebf8ff;
+  border-radius: 8px;
+}
+
+.errorAlert {
+  margin-bottom: 1.5rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+.explanationContainer {
+  margin-top: 2rem;
+}

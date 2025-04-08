@@ -1,0 +1,157 @@
+.container {
+  background-color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.heading {
+  color: #2c5282;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.performanceContainer {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: #f7fafc;
+  border-radius: 8px;
+}
+
+.modelCard {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.modelCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form {
+  margin: 1.5rem 0;
+}
+
+.formControl {
+  margin-bottom: 1rem;
+}
+
+.input, .select {
+  transition: all 0.2s ease;
+}
+
+.input:focus, .select:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 1px #3182ce;
+}
+
+.submitButton {
+  background: linear-gradient(45deg, #3182ce, #4299e1);
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.submitButton:hover {
+  background: linear-gradient(45deg, #2c5282, #3182ce);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.spinner {
+  color: #3182ce;
+}
+
+.resultsContainer {
+  margin-top: 2rem;
+}
+
+.modelResultCard {
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.modelResultCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.highRisk {
+  background: linear-gradient(45deg, #fed7d7, #fff5f5);
+  border-left: 4px solid #e53e3e;
+}
+
+.lowRisk {
+  background: linear-gradient(45deg, #c6f6d5, #f0fff4);
+  border-left: 4px solid #38a169;
+}
+
+.resultBadge {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+}
+
+.agreementBox {
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.modelAgreement {
+  background: linear-gradient(45deg, #bee3f8, #ebf8ff);
+  border-left: 4px solid #3182ce;
+}
+
+.modelDisagreement {
+  background: linear-gradient(45deg, #fefcbf, #fffff0);
+  border-left: 4px solid #d69e2e;
+}
+
+.errorAlert {
+  margin-bottom: 1.5rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .modelCard, .modelResultCard {
+    margin-bottom: 1rem;
+  }
+
+  .formControl {
+    margin-bottom: 0.5rem;
+  }
+}

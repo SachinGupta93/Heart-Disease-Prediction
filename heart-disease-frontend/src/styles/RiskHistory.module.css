@@ -1,0 +1,141 @@
+.container {
+  background-color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.heading {
+  color: #2c5282;
+  font-weight: 700;
+}
+
+.saveButton {
+  background: linear-gradient(45deg, #3182ce, #4299e1);
+  transition: all 0.3s ease;
+}
+
+.saveButton:hover {
+  background: linear-gradient(45deg, #2c5282, #3182ce);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.spinner {
+  color: #3182ce;
+}
+
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+  border: 2px dashed #e2e8f0;
+  border-radius: 8px;
+  margin: 2rem 0;
+  background-color: #f7fafc;
+}
+
+.chartContainer {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.trendBox, .projectionBox {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.trendBox:hover, .projectionBox:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.trendBadge, .projectionBadge, .riskBadge {
+  font-size: 0.9rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin: 0 0.3rem;
+}
+
+.tableContainer {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.historyTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tableRow {
+  transition: all 0.2s ease;
+}
+
+.tableRow:hover {
+  background-color: #f7fafc;
+}
+
+.riskPercentage {
+  font-weight: 600;
+}
+
+.deleteButton {
+  transition: all 0.2s ease;
+}
+
+.deleteButton:hover {
+  background-color: #fed7d7;
+  color: #e53e3e;
+}
+
+.infoBox {
+  background-color: #ebf8ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.errorAlert {
+  margin-bottom: 1.5rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

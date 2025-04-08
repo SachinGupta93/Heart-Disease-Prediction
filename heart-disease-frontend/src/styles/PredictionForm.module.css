@@ -1,0 +1,102 @@
+.predictionForm {
+  transition: all 0.3s ease;
+  background-color: white;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.predictionForm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.formHeading {
+  color: #2c5282;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.inputField {
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.inputField:focus-within {
+  transform: translateY(-2px);
+}
+
+.submitButton {
+  background: linear-gradient(45deg, #3182ce, #4299e1);
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.submitButton:hover {
+  background: linear-gradient(45deg, #2c5282, #3182ce);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.resultBox {
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.highRisk {
+  background: linear-gradient(45deg, #fed7d7, #fff5f5);
+  border-left: 4px solid #e53e3e;
+}
+
+.lowRisk {
+  background: linear-gradient(45deg, #c6f6d5, #f0fff4);
+  border-left: 4px solid #38a169;
+}
+
+.resultHeading {
+  font-weight: 700;
+}
+
+.resultMessage {
+  line-height: 1.6;
+}
+
+.probabilityText {
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.modelInfo {
+  font-style: italic;
+  color: #718096;
+}
+
+.loadingContainer {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  color: #3182ce;
+}
+
+.errorAlert {
+  margin-bottom: 1rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
