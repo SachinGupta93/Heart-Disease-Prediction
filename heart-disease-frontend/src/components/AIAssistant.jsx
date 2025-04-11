@@ -23,49 +23,15 @@ import {
   Tag,
   Tooltip,
   useBreakpointValue,
-  Divider,
   Spinner,
-  Alert,
-  AlertIcon,
   useToast
 } from '@chakra-ui/react';
-import { FaRobot, FaPaperPlane, FaUser, FaTimes, FaQuestionCircle, FaHistory, FaHeartbeat, FaInfoCircle, FaTools } from 'react-icons/fa';
+import { FaRobot, FaPaperPlane, FaUser, FaHeartbeat, FaInfoCircle, FaTools, FaQuestionCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { API_URL } from '../config';
 
-// HuggingFace Inference API configuration
-const HF_API_KEY = import.meta.env.VITE_HF_API_KEY || "";
-const HF_MODEL_ID = "google/flan-t5-large"; // A good free model for medical questions
-const isHFConfigured = HF_API_KEY && HF_API_KEY.length > 10;
-
-// API configuration settings
-const API_CONFIG = {
-  timeout: 15000, // 15 seconds timeout
-  retryCount: 3,  // Number of retries on failure
-  retryDelay: 1000, // Initial delay before retry (increases with backoff)
-  requestCache: new Map(), // Cache for recent responses
-  cacheExpiry: 300000, // Cache expiry time (5 minutes)
-};
-
-// Rate limiting settings
-const RATE_LIMIT = {
-  maxRequestsPerMinute: 10, // HuggingFace has generous limits for free tier
-  requestTimestamps: [],
-  resetTimestamps: function() {
-    const now = Date.now();
-    this.requestTimestamps = this.requestTimestamps.filter(
-      timestamp => now - timestamp < 60000
-    );
-  },
-  isRateLimited: function() {
-    this.resetTimestamps();
-    return this.requestTimestamps.length >= this.maxRequestsPerMinute;
-  },
-  addRequest: function() {
-    this.requestTimestamps.push(Date.now());
-  }
-};
-
-// Predefined responses based on keywords - used as fallback if API fails
+// Keep AI_RESPONSES as fallback in case API fails
 const AI_RESPONSES = {
   // General app questions
   'dashboard': 'The Dashboard shows an overview of your heart health data, recent predictions, and health tips.',
@@ -125,8 +91,30 @@ const AI_RESPONSES = {
   'alcohol': 'Excessive alcohol consumption can raise blood pressure and add calories to your diet. If you drink alcohol, do so in moderation - up to one drink per day for women and up to two drinks per day for men.',
   'weight': 'Maintaining a healthy weight is important for heart health. Excess weight, especially around the waist, increases risk of high blood pressure, high cholesterol, and type 2 diabetes - all risk factors for heart disease.',
   
+  // Project-specific responses
+  'thalach': 'Maximum heart rate (thalach) during exercise is an important indicator of cardiovascular health. A higher maximum heart rate is generally better, but extremely high rates can also indicate issues. The typical formula is 220 minus your age.',
+  'trestbps': 'Resting blood pressure (trestbps) is the pressure in your arteries when your heart is at rest. Normal range is below 120/80 mmHg. Higher values may indicate hypertension, a risk factor for heart disease.',
+  'oldpeak': 'ST depression (oldpeak) refers to how much the ST segment on an ECG is depressed during exercise compared to rest. Higher values may indicate ischemia, or insufficient blood flow to the heart muscle.',
+  'ca': 'The number of major vessels (ca) colored by fluoroscopy ranges from 0-3, with higher numbers indicating more severe coronary artery disease.',
+  'thal': 'Thalassemia (thal) is a blood disorder that affects how your body makes hemoglobin. In the context of heart disease prediction, different types of thalassemia can impact your risk assessment.',
+  'cp': 'Chest pain type (cp) is categorized as: 1 = typical angina, 2 = atypical angina, 3 = non-anginal pain, 4 = asymptomatic. Different types of chest pain indicate different levels of heart disease risk.',
+  'slope': 'The slope of the peak exercise ST segment can be: 1 = upsloping, 2 = flat, 3 = downsloping. This is measured during an exercise stress test and helps evaluate heart function.',
+  'exang': 'Exercise-induced angina (exang) means experiencing chest pain during physical activity, which can be a sign that your heart isn\'t getting enough oxygen during exertion.',
+  'fbs': 'Fasting blood sugar (fbs) above 120 mg/dl indicates potential diabetes, which is a significant risk factor for heart disease. Maintaining normal blood sugar levels is important for heart health.',
+  'restecg': 'Resting electrocardiographic results (restecg) show the electrical activity of your heart at rest. Abnormal readings may indicate existing heart damage or problems.',
+  'sex': 'In heart disease risk assessment, biological sex is a factor as men generally have a higher risk of heart disease than women, especially before menopause. After menopause, women\'s risk increases significantly.',
+  'age': 'Age is a significant risk factor for heart disease. Risk increases as you get older, particularly after age 45 for men and 55 for women.',
+  
+  // App tips
+  'feature importance chart': 'The Feature Importance chart shows which health factors have the strongest influence on heart disease prediction. Factors at the top have more impact on your risk assessment.',
+  'shap values': 'SHAP values in the Explainable AI section show how each of your health metrics affects your prediction - red points push your risk higher, while blue points lower your risk.',
+  'risk factors chart': 'The Risk Factors chart shows how your values compare to typical ranges. Values outside the normal range may contribute to higher heart disease risk.',
+  'simulation': 'Use the Risk Simulator to see how changing different health metrics might affect your heart disease risk. This can help you set health improvement goals.',
+  'prediction history': 'Your Prediction History shows how your risk has changed over time. Regular improvements in your health metrics should reflect as a lower risk trend.',
+  'model comparison chart': 'The Model Comparison chart shows how different AI approaches assess your risk. When multiple models agree, it provides more confidence in the prediction.',
+  
   // Default response when no matching keywords are found
-  'default': 'I\'m not sure I understand. You can ask me about heart disease, risk factors, app features, or interpreting your results.'
+  'default': 'I\'m here to help with heart health questions and using this application. You can ask about heart disease, risk factors, app features, or interpreting your results. Try asking something like "What is heart disease?" or "How does the prediction work?"'
 };
 
 // Suggested questions for the user
@@ -175,508 +163,267 @@ const QUESTION_CATEGORIES = [
   }
 ];
 
-const AIAssistant = forwardRef((props, ref) => {
+const AIAssistant = forwardRef(({ userData }, ref) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [messages, setMessages] = useState([
-    {
-      sender: 'ai',
-      text: 'Hello! I\'m your Heart Health Assistant. How can I help you today?'
-    }
-  ]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(null);
-  const [useLocalResponse, setUseLocalResponse] = useState(false);
-  const messagesEndRef = useRef(null);
-  const btnRef = useRef();
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const chatEndRef = useRef(null);
   const toast = useToast();
   
+  // Background colors
   const bgColor = useColorModeValue('white', 'gray.800');
-  const bubbleBgUser = useColorModeValue('blue.100', 'blue.800');
-  const bubbleBgAI = useColorModeValue('gray.100', 'gray.700');
-  const buttonSize = useBreakpointValue({ base: 'md', md: 'lg' });
+  const userBubbleColor = useColorModeValue('blue.100', 'blue.700');
+  const aiBubbleColor = useColorModeValue('gray.100', 'gray.700');
+  const inputBgColor = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
   
-  // Auto-scroll to the bottom of chat
+  // Suggested queries
+  const suggestedQueries = [
+    { text: 'Heart disease symptoms', icon: FaHeartbeat },
+    { text: 'How to use this app?', icon: FaInfoCircle },
+    { text: 'Risk factors', icon: FaTools },
+    { text: 'Prevention tips', icon: FaQuestionCircle },
+  ];
+  
+  // Expose functions via forwardRef
+  useImperativeHandle(ref, () => ({
+    open: () => {
+      onOpen();
+    },
+    close: () => {
+      onClose();
+    },
+    addMessage: (text) => {
+      handleUserMessage(text);
+    }
+  }));
+  
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
   
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
-
-  // Function to get response from HuggingFace Inference API
-  const getAIResponse = async (query) => {
-    let retryCount = 0;
-    const maxRetries = 2;
-    
-    const attemptHFCall = async () => {
-      try {
-        // Get chat history for context - last 4 messages max for model context limits
-        const recentMessages = messages.slice(-4).map(msg => 
-          `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.text}`
-        ).join('\n');
-
-        // Create system prompt with heart health context
-        const systemPrompt = `You are an expert heart health assistant for a heart disease prediction application. 
-        Provide concise, accurate information about heart health, disease prevention, and how to interpret prediction results.
-        
-        This app includes:
-        1. Risk assessment - Users input health metrics to get heart disease risk prediction
-        2. Dashboard - Overview of health data and predictions
-        3. Explainable AI - Shows how the model reached its prediction
-        4. Feature Importance - Shows which health factors most influence risk
-        5. Model Comparison - Demonstrates how different AI models evaluate risk
-        6. Health Information - Educational content about heart disease
-        
-        Recent conversation:
-        ${recentMessages}
-        
-        User: ${query}
-        Assistant:`;
-
-        // HuggingFace Inference API call with timeout protection
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('HuggingFace API request timed out')), 10000)
-        );
-        
-        const apiPromise = fetch(`https://api-inference.huggingface.co/models/${HF_MODEL_ID}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${HF_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            inputs: systemPrompt,
-            parameters: {
-              max_length: 300,
-              temperature: 0.7,
-              top_p: 0.9
-            }
-          })
-        });
-        
-        const response = await Promise.race([apiPromise, timeoutPromise]);
-        
-        if (!response.ok) {
-          throw new Error(`HuggingFace API error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        // Extract the response text from HuggingFace's response
-        let responseText;
-        if (Array.isArray(data) && data.length > 0) {
-          responseText = data[0].generated_text || "";
-          
-          // Clean up the response - remove system prompt if included
-          if (responseText.includes('Assistant:')) {
-            responseText = responseText.split('Assistant:').pop().trim();
-          }
-        } else if (typeof data === 'object' && data.generated_text) {
-          responseText = data.generated_text;
-        } else {
-          responseText = "I couldn't generate a proper response at the moment.";
-        }
-        
-        setUseLocalResponse(false);
-        return responseText;
-      } catch (error) {
-        console.error(`HuggingFace API error (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`Retrying HuggingFace API call (${retryCount}/${maxRetries})...`);
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-          return attemptHFCall();
-        }
-        
-        // If all retries fail, throw the error to be caught in the calling function
-        throw error;
-      }
-    };
-    
+  
+  // Function to get AI response from backend
+  const getAIResponse = async (userInput, healthData) => {
     try {
-      // Check if HuggingFace is configured
-      if (!isHFConfigured) {
-        console.log('HuggingFace API not configured, using local response');
-        setUseLocalResponse(true);
-        return findLocalResponse(query);
+      setLoading(true);
+      
+      // Prepare the request data
+      const requestData = {
+        question: userInput,
+        health_data: healthData || {}
+      };
+      
+      // Make API request to the dedicated AI assistant chat endpoint
+      const response = await axios.post(`${API_URL}/assistant/chat`, requestData);
+      
+      if (response.data.success) {
+        return response.data.data.response;
+      } else {
+        // If API call fails, fall back to static responses
+        console.error("API error:", response.data.message);
+        return getFallbackResponse(userInput);
       }
-      
-      // Check for rate limiting
-      if (RATE_LIMIT.isRateLimited()) {
-        toast({
-          title: "Rate limit exceeded",
-          description: "Please wait a moment before asking another question.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-          position: "top"
-        });
-        return "Please wait a moment before asking another question.";
-      }
-      
-      // Add request timestamp for rate limiting
-      RATE_LIMIT.addRequest();
-      
-      // Attempt the API call
-      return await attemptHFCall();
     } catch (error) {
-      console.error("All HuggingFace API attempts failed:", error);
-      setUseLocalResponse(true);
-      toast({
-        title: "AI service temporarily unavailable",
-        description: "Using local responses instead",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-        position: "top"
-      });
-      return findLocalResponse(query);
+      console.error("Error getting AI response:", error);
+      // Fall back to static responses
+      return getFallbackResponse(userInput);
+    } finally {
+      setLoading(false);
     }
   };
   
-  const findLocalResponse = (query) => {
-    // Convert to lowercase for easier matching
-    const lowercaseQuery = query.toLowerCase();
+  // Fallback function to search static AI_RESPONSES
+  const getFallbackResponse = (userInput) => {
+    // Create a lowercase version for comparison
+    const lowercaseInput = userInput.toLowerCase();
     
-    // Check for navigation commands
-    if (lowercaseQuery.includes('go to') || lowercaseQuery.includes('navigate to') || lowercaseQuery.includes('show me')) {
-      if (lowercaseQuery.includes('dashboard')) {
-        setTimeout(() => navigate('/dashboard'), 1000);
-        return "I'll take you to the dashboard now.";
-      } else if (lowercaseQuery.includes('prediction') || lowercaseQuery.includes('risk assessment')) {
-        setTimeout(() => navigate('/prediction'), 1000);
-        return "I'll take you to the risk assessment page now.";
-      } else if (lowercaseQuery.includes('history')) {
-        setTimeout(() => navigate('/history'), 1000);
-        return "I'll show you your prediction history now.";
-      } else if (lowercaseQuery.includes('simulator')) {
-        setTimeout(() => navigate('/simulator'), 1000);
-        return "Opening the risk simulator for you.";
-      } else if (lowercaseQuery.includes('information') || lowercaseQuery.includes('health info')) {
-        setTimeout(() => navigate('/information'), 1000);
-        return "I'll take you to the health information section now.";
+    // Check for exact match in AI_RESPONSES
+    if (AI_RESPONSES[lowercaseInput]) {
+      return AI_RESPONSES[lowercaseInput];
+    }
+    
+    // Search for partial matches in the input
+    for (const key of Object.keys(AI_RESPONSES)) {
+      if (lowercaseInput.includes(key)) {
+        return AI_RESPONSES[key];
       }
     }
     
-    // Check for keyword matches
-    for (const [keyword, response] of Object.entries(AI_RESPONSES)) {
-      if (lowercaseQuery.includes(keyword.toLowerCase())) {
-        return response;
-      }
-    }
-    
-    // Return default response if no keywords match
-    return AI_RESPONSES.default;
+    // Return a default response if no matches
+    return "I'm not sure how to help with that specific question. You can ask me about heart disease, risk factors, prevention, or how to use this application.";
   };
   
-  const handleSendMessage = async () => {
-    if (input.trim() === '') return;
+  const handleUserMessage = async (text) => {
+    // Add user message to chat
+    setMessages([...messages, { sender: 'user', text }]);
     
-    // Add user message
-    const newMessages = [
-      ...messages,
-      { sender: 'user', text: input }
-    ];
-    
-    setMessages(newMessages);
+    // Clear input field
     setInput('');
     
-    // Show typing indicator
-    setIsTyping(true);
+    // Extract health data if available
+    const healthData = userData || {};
     
-    try {
-      // Get response from AI API or fallback to local responses
-      const aiResponse = useLocalResponse 
-        ? findLocalResponse(input)
-        : await getAIResponse(input);
-      
-      setIsTyping(false);
-      setMessages([
-        ...newMessages,
-        { sender: 'ai', text: aiResponse }
-      ]);
-    } catch (error) {
-      console.error("Error getting AI response:", error);
-      setIsTyping(false);
-      setMessages([
-        ...newMessages,
-        { sender: 'ai', text: "Sorry, I'm having trouble connecting to the AI service right now. Please try again later." }
-      ]);
+    // Get AI response (now from backend API)
+    const aiResponse = await getAIResponse(text, healthData);
+    
+    // Add AI response to chat
+    setMessages(prevMessages => [...prevMessages, { sender: 'ai', text: aiResponse }]);
+  };
+  
+  const handleSendMessage = () => {
+    if (input.trim()) {
+      handleUserMessage(input);
     }
   };
   
-  const handleQuestionClick = async (question) => {
-    // Add user message
-    const newMessages = [
-      ...messages,
-      { sender: 'user', text: question }
-    ];
-    
-    setMessages(newMessages);
-    
-    // Show typing indicator
-    setIsTyping(true);
-    
-    try {
-      // Get response from AI API or fallback to local responses
-      const aiResponse = useLocalResponse 
-        ? findLocalResponse(question)
-        : await getAIResponse(question);
-      
-      setIsTyping(false);
-      setMessages([
-        ...newMessages,
-        { sender: 'ai', text: aiResponse }
-      ]);
-    } catch (error) {
-      console.error("Error getting AI response:", error);
-      setIsTyping(false);
-      setMessages([
-        ...newMessages,
-        { sender: 'ai', text: "Sorry, I'm having trouble connecting to the AI service right now. Please try again later." }
-      ]);
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && input.trim()) {
+      handleSendMessage();
     }
   };
-
-  // Expose methods to parent components via ref
-  useImperativeHandle(ref, () => ({
-    openDrawer: (initialQuestion = '') => {
-      if (initialQuestion) {
-        setInput(initialQuestion);
-        // Option to auto-submit the initial question
-        // handleAskQuestion(initialQuestion);
-      }
-      onOpen();
-    }
-  }));
   
-  const clearChat = () => {
-    setMessages([
-      {
-        sender: 'ai',
-        text: 'Hello! I\'m your Heart Health Assistant. How can I help you today?'
-      }
-    ]);
+  const handleSuggestedQuery = (query) => {
+    handleUserMessage(query);
   };
+  
+  // Responsive width
+  const drawerWidth = useBreakpointValue({ base: "100%", md: "400px" });
   
   return (
-    <>
-      <Tooltip label="Ask the AI Assistant" aria-label="Ask the AI Assistant">
-        <IconButton
-          icon={<FaRobot />}
-          colorScheme="blue"
-          borderRadius="full"
-          position="fixed"
-          bottom="65px"
-          right="40px"
-          size={buttonSize}
-          ref={btnRef}
-          onClick={onOpen}
-          boxShadow="lg"
-          aria-label="Open AI Assistant"
-          zIndex={3}
-        />
-      </Tooltip>
-      
-      <Drawer
-        isOpen={isOpen}
-        placement="right"
-        onClose={onClose}
-        finalFocusRef={btnRef}
-        size={{ base: "full", md: "md" }}
-      >
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px" display="flex" alignItems="center">
-            <FaRobot style={{ marginRight: '10px' }} />
-            Heart Health AI Assistant
-            <Tooltip label="Clear conversation">
-              <IconButton
-                icon={<FaTimes />}
-                size="sm"
-                variant="ghost"
-                onClick={clearChat}
-                ml="auto"
-                aria-label="Clear chat"
-              />
-            </Tooltip>
-          </DrawerHeader>
+    <Drawer
+      isOpen={isOpen}
+      placement="right"
+      onClose={onClose}
+      size="md"
+      finalFocusRef={null}
+    >
+      <DrawerOverlay />
+      <DrawerContent width={drawerWidth}>
+        <DrawerCloseButton />
+        <DrawerHeader borderBottomWidth="1px" bg={useColorModeValue('blue.500', 'blue.700')} color="white">
+          <Flex align="center">
+            <FaRobot style={{ marginRight: '8px',marginBottom:'10px' }} />
+            <Text>Heart Health Assistant</Text>
+          </Flex>
+        </DrawerHeader>
 
-          <DrawerBody>
-            <VStack spacing={4} align="stretch" mb={4}>
-              {/* Category buttons */}
-              <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2}>
-                  Topics:
-                </Text>
-                <HStack spacing={2} overflowX="auto" pb={2} css={{
-                  '&::-webkit-scrollbar': {
-                    height: '8px',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: useColorModeValue('rgba(0,0,0,0.2)', 'rgba(255,255,255,0.2)'),
-                    borderRadius: '8px',
-                  },
-                }}>
-                  {QUESTION_CATEGORIES.map((category, index) => (
-                    <Tag 
-                      key={index}
-                      size="md"
-                      colorScheme={activeCategoryIndex === index ? "blue" : "gray"}
-                      cursor="pointer"
-                      onClick={() => setActiveCategoryIndex(activeCategoryIndex === index ? null : index)}
-                      whiteSpace="nowrap"
+        <DrawerBody p={0}>
+          <VStack spacing={0} h="100%">
+            {/* Chat messages area */}
+            <Box flex="1" width="100%" p={4} overflowY="auto" maxHeight="calc(100vh - 200px)">
+              {messages.length === 0 ? (
+                <VStack spacing={4} align="center" justify="center" height="100%">
+                  <Avatar icon={<FaRobot fontSize="1.5rem"/>} bg="blue.500" size="xl" />
+                  <Text fontWeight="bold" fontSize="lg">Hello! I'm your Heart Health Assistant</Text>
+                  <Text textAlign="center">Ask me anything about heart health or how to use this app.</Text>
+                  
+                  {/* Suggested queries */}
+                  <HStack spacing={2} mt={4} flexWrap="wrap" justifyContent="center">
+                    {suggestedQueries.map((query, index) => (
+                      <Tag 
+                        key={index}
+                        size="lg" 
+                        borderRadius="full" 
+                        variant="solid" 
+                        colorScheme="blue"
+                        cursor="pointer"
+                        position={'relative'}
+                        bottom={50}
+                        onClick={() => handleSuggestedQuery(query.text)}
+                        p={2}
+                        m={1}
+                      >
+                        <HStack spacing={1}>
+                          <Box as={query.icon} />
+                          <Text>{query.text}</Text>
+                        </HStack>
+                      </Tag>
+                    ))}
+                  </HStack>
+                </VStack>
+              ) : (
+                <VStack spacing={4} align="stretch">
+                  {messages.map((message, index) => (
+                    <Flex 
+                      key={index} 
+                      justify={message.sender === 'user' ? 'flex-end' : 'flex-start'}
                     >
-                      <HStack spacing={1}>
-                        <Box>{category.icon}</Box>
-                        <Box>{category.name}</Box>
-                      </HStack>
-                    </Tag>
+                      <Box
+                        bg={message.sender === 'user' ? userBubbleColor : aiBubbleColor}
+                        color={message.sender === 'user' ? 'black' : 'black'}
+                        borderRadius="lg"
+                        px={4}
+                        py={2}
+                        maxWidth="80%"
+                        boxShadow="sm"
+                      >
+                        <Text>{message.text}</Text>
+                      </Box>
+                    </Flex>
                   ))}
-                </HStack>
-              </Box>
-              
-              {/* Show questions for selected category */}
-              {activeCategoryIndex !== null && (
-                <VStack align="stretch" spacing={2} pb={2}>
-                  {QUESTION_CATEGORIES[activeCategoryIndex].questions.map((question, index) => (
-                    <Button 
-                      key={index}
-                      size="sm" 
-                      variant="outline"
-                      justifyContent="flex-start"
-                      onClick={() => handleQuestionClick(question)}
-                      overflow="hidden"
-                      textOverflow="ellipsis"
-                    >
-                      {question}
-                    </Button>
-                  ))}
+                  {loading && (
+                    <Flex justify="flex-start">
+                      <Box
+                        bg={aiBubbleColor}
+                        borderRadius="lg"
+                        px={4}
+                        py={2}
+                        maxWidth="80%"
+                      >
+                        <Spinner size="sm" color="blue.500" mr={2} />
+                        <Text as="span">Thinking...</Text>
+                      </Box>
+                    </Flex>
+                  )}
+                  <div ref={chatEndRef} />
                 </VStack>
               )}
-            </VStack>
+            </Box>
             
-            <Divider mb={4} />
-            
-            {/* Chat messages */}
-            <VStack spacing={4} align="stretch" mb={4} overflowY="auto">
-              {messages.map((message, index) => (
-                <Flex 
-                  key={index} 
-                  direction={message.sender === 'user' ? 'row-reverse' : 'row'}
-                  align="start"
-                >
-                  <Avatar
+            {/* Input area */}
+            <Box
+              width="100%"
+              p={4}
+              borderTopWidth="1px"
+              borderColor={borderColor}
+              bg={bgColor}
+            >
+              <InputGroup size="md">
+                <Input
+                  placeholder="Type your question..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  bg={inputBgColor}
+                  disabled={loading}
+                />
+                <InputRightElement width="3rem">
+                  <IconButton
+                    h="1.75rem"
+                    w="1.75rem"
                     size="sm"
-                    icon={message.sender === 'user' ? <FaUser /> : <FaRobot />}
-                    bg={message.sender === 'user' ? 'blue.500' : 'gray.500'}
-                    color="white"
-                    mr={message.sender === 'user' ? 0 : 2}
-                    ml={message.sender === 'user' ? 2 : 0}
+                    icon={<FaPaperPlane />}
+                    colorScheme="red"
+                    onClick={handleSendMessage}
+                    disabled={!input.trim() || loading}
+                    aria-label="Send message"
                   />
-                  <Box
-                    maxW="75%"
-                    borderRadius="lg"
-                    px={4}
-                    py={2}
-                    bg={message.sender === 'user' ? bubbleBgUser : bubbleBgAI}
-                  >
-                    <Text>{message.text}</Text>
-                  </Box>
-                </Flex>
-              ))}
-              
-              {/* Typing indicator */}
-              {isTyping && (
-                <Flex direction="row" align="start">
-                  <Avatar
-                    size="sm"
-                    icon={<FaRobot />}
-                    bg="gray.500"
-                    color="white"
-                    mr={2}
-                  />
-                  <Box
-                    maxW="75%"
-                    borderRadius="lg"
-                    px={4}
-                    py={2}
-                    bg={bubbleBgAI}
-                  >
-                    <Spinner size="sm" mr={2} />
-                    <Text as="span">Thinking...</Text>
-                  </Box>
-                </Flex>
-              )}
-              
-              {/* For auto-scrolling */}
-              <div ref={messagesEndRef} />
-            </VStack>
-            
-            {/* API status indicator */}
-            {useLocalResponse && (
-              <Alert status="warning" mb={4} borderRadius="md" size="sm">
-                <AlertIcon />
-                <Text fontSize="sm">Using local responses (OpenAI service unavailable)</Text>
-              </Alert>
-            )}
-            
-            {/* Suggested questions */}
-            {messages.length < 3 && (
-              <Box mb={4}>
-                <Text fontSize="sm" fontWeight="medium" mb={2}>
-                  Suggested questions:
-                </Text>
-                <Flex wrap="wrap" gap={2}>
-                  {SUGGESTED_QUESTIONS.slice(0, 4).map((question, index) => (
-                    <Button
-                      key={index}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleQuestionClick(question)}
-                    >
-                      {question}
-                    </Button>
-                  ))}
-                </Flex>
-              </Box>
-            )}
-          </DrawerBody>
-
-          <DrawerFooter borderTopWidth="1px">
-            <InputGroup size="md">
-              <Input
-                pr="4.5rem"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about heart health or app features..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSendMessage();
-                  }
-                }}
-              />
-              <InputRightElement width="4.5rem">
-                <Button 
-                  h="1.75rem" 
-                  size="sm" 
-                  colorScheme="blue"
-                  onClick={handleSendMessage}
-                  isDisabled={input.trim() === ''}
-                >
-                  <FaPaperPlane />
-                </Button>
-              </InputRightElement>
-            </InputGroup>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </>
+                </InputRightElement>
+              </InputGroup>
+            </Box>
+          </VStack>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
   );
 });
 

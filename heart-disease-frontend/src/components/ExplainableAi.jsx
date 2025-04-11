@@ -9,7 +9,7 @@ import { InfoIcon } from '@chakra-ui/icons';
 import { 
   FaHeartbeat, FaChartBar, FaChartLine, FaBalanceScale, 
   FaDatabase, FaInfoCircle, FaExclamationTriangle, FaPercentage,
-  FaClipboardCheck, FaUserMd, FaRegLightbulb
+  FaClipboardCheck, FaUserMd, FaRegLightbulb, FaFingerprint
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import {
@@ -17,6 +17,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+import ShapExplanation from './ShapExplanation';
 
 const MotionBox = motion(Box);
 
@@ -139,6 +140,12 @@ const ExplainableAi = () => {
             <Flex align="center">
               <Icon as={FaDatabase} mr={2} />
               <Text>Dataset Overview</Text>
+            </Flex>
+          </Tab>
+          <Tab>
+            <Flex align="center">
+              <Icon as={FaFingerprint} mr={2} />
+              <Text>SHAP Explanations</Text>
             </Flex>
           </Tab>
         </TabList>
@@ -733,6 +740,11 @@ const ExplainableAi = () => {
                 </Alert>
               </Box>
             </SimpleGrid>
+          </TabPanel>
+
+          {/* SHAP Explanations Panel */}
+          <TabPanel>
+            <ShapExplanation />
           </TabPanel>
         </TabPanels>
       </Tabs>

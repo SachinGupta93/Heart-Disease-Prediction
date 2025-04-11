@@ -8,6 +8,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 import logging
 
+# Import Gemini utilities
+from backend.utils.gemini_utils import get_health_advice, answer_health_question
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -171,6 +174,75 @@ def health_info():
         ]
     }
     return jsonify({'success': True, 'data': health_info_data})
+
+# AI Health Advice endpoint
+@app.route('/health/advice', methods=['POST'])
+def ai_health_advice():
+    logger.info("AI health advice requested")
+    try:
+        # Get health data from request
+        health_data = request.json
+        
+        # Validate input data
+        if not health_data:
+            return jsonify({
+                'success': False,
+                'message': 'No health data provided'
+            }), 400
+            
+        # Get AI-generated health advice
+        advice = get_health_advice(health_data)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'advice': advice,
+                'timestamp': datetime.now().isoformat()
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating health advice: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f"Error generating health advice: {str(e)}"
+        }), 500
+
+# AI Chatbot Assistant endpoint
+@app.route('/assistant/chat', methods=['POST'])
+def ai_chat_assistant():
+    logger.info("AI assistant chat request received")
+    try:
+        # Get question from request
+        data = request.json
+        
+        if not data or 'question' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'No question provided'
+            }), 400
+            
+        question = data['question']
+        # Get health data from request if available
+        health_data = data.get('health_data', None)
+        
+        # Get AI-generated response
+        response = answer_health_question(question, health_data)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'response': response,
+                'timestamp': datetime.now().isoformat()
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating AI assistant response: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f"Error generating response: {str(e)}"
+        }), 500
 
 # Standard prediction endpoint
 @app.route('/predict', methods=['POST', 'OPTIONS'])

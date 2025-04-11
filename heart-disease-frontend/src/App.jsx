@@ -6,6 +6,7 @@ import theme from './theme';
 // Import components
 import LoadingScreen from './components/LoadingScreen';
 import Navbar from './components/Navbar';
+import Header from './components/Header'
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary'; 
 
@@ -15,6 +16,7 @@ const PredictionForm = lazy(() => import('./components/PredictionForm'));
 const RiskSimulator = lazy(() => import('./components/RiskSimulator'));
 const PredictionHistory = lazy(() => import('./components/PredictionHistory'));
 const HealthInformation = lazy(() => import('./components/HealthInformation'));
+const HealthInfo = lazy(() => import('./components/HealthInfo'));
 const ExplainableAi = lazy(() => import('./components/ExplainableAi'));
 const FeatureImportance = lazy(() => import('./components/FeatureImportance'));
 const ModelComparison = lazy(() => import('./components/ModelComparison'));
@@ -58,6 +60,7 @@ function App() {
         <AuthProvider>
           <PredictionProvider>
             <ErrorBoundary>
+             <Header/>
               <Box minHeight="100vh" display="flex" flexDirection="column">
                 <Navbar />
                 <Box 
@@ -127,6 +130,10 @@ function App() {
 
                       <Route path="/health-information" element={
                         <HealthInformation />
+                      } />
+
+                      <Route path="/health-info" element={
+                        <HealthInfo />
                       } />
                       
                       {/* Redirect root to dashboard or login */}

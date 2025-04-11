@@ -11,3 +11,4 @@ matplotlib==3.4.3
 seaborn==0.11.2
 pytest==6.2.5
 flask-sqlalchemy==2.5.1
+google-generativeai==0.3.1

@@ -22,7 +22,15 @@ import {
   Tooltip,
   Image,
   LinkBox,
-  LinkOverlay
+  LinkOverlay,
+  IconButton,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverArrow,
+  PopoverCloseButton,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,7 +54,9 @@ import {
   FaServer,
   FaPlusSquare,
   FaCheckCircle,
-  FaTimesCircle
+  FaTimesCircle,
+  FaRobot,
+  FaComments
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import DashboardSkeleton from './DashboardSkeleton';
@@ -192,7 +202,14 @@ const Dashboard = () => {
     const question = 'I want to continue analyzing my heart health data. What insights can you provide based on my recent predictions?';
     // Open the AI Assistant drawer using the ref
     if (aiAssistantRef.current) {
-      aiAssistantRef.current.openDrawer(question);
+      aiAssistantRef.current.open(question);
+    }
+  };
+
+  // Function to open AI Assistant with a specific question
+  const openAIAssistant = (question = '') => {
+    if (aiAssistantRef.current) {
+      aiAssistantRef.current.open(question);
     }
   };
 
@@ -207,6 +224,35 @@ const Dashboard = () => {
 
   return (
     <Container maxW="container.xl" py={8}>
+      {/* Add AI Assistant Button (always visible in the corner) */}
+      <Box position="fixed" bottom="80px" right="25px" zIndex={10}>
+        <Popover>
+          <PopoverTrigger>
+            <IconButton
+              icon={<FaRobot />}
+              colorScheme="blue"
+              size="lg"
+              borderRadius="full"
+
+              boxShadow="lg"
+              _hover={{
+                transform: 'scale(1.1)',
+              }}
+              aria-label="Open AI Assistant"
+              onClick={() => openAIAssistant()}
+            />
+          </PopoverTrigger>
+          <PopoverContent>
+            <PopoverArrow />
+            <PopoverCloseButton />
+            <PopoverHeader>AI Health Assistant</PopoverHeader>
+            <PopoverBody>
+              Click to open your personal AI health assistant for insights about your heart health.
+            </PopoverBody>
+          </PopoverContent>
+        </Popover>
+      </Box>
+      
       {/* Add AIAssistant component with ref */}
       <AIAssistant ref={aiAssistantRef}/>
       
@@ -335,8 +381,34 @@ const Dashboard = () => {
           </MotionBox>
         </SimpleGrid>
 
+        {/* Add AI Assistant section */}
+        <MotionBox 
+          p={6} 
+          borderWidth="1px" 
+          borderRadius="lg" 
+          bg={bgColor}
+          boxShadow="sm"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          _hover={{ boxShadow: 'md', transform: 'translateY(-5px)' }}
+          cursor="pointer"
+          onClick={() => openAIAssistant("Hello, I'd like to know more about heart health.")}
+        >
+          <Flex align="center">
+            <Icon as={FaComments} w={8} h={8} color="purple.500" mr={4} />
+            <Box>
+              <Heading size="md" mb={2} color={headingColor}>AI Health Assistant</Heading>
+              <Text color={secondaryText}>
+                Have questions about heart health? Our AI assistant can provide personalized guidance and information.
+              </Text>
+            </Box>
+            <Icon as={FaArrowRight} ml="auto" color={iconColor} />
+          </Flex>
+        </MotionBox>
+
         {/* Featured Services Section */}
-        <Box mt={8}>
+        <Box mt={4}>
           <Flex align="center" mb={6}>
             <Icon as={FaUserMd} w={6} h={6} color={iconColor} mr={3} />
             <Heading size="lg" color={headingColor}>Our Services</Heading>
@@ -445,7 +517,7 @@ const Dashboard = () => {
               <VStack spacing={4} align="stretch">
                 {recentPredictions.map((prediction) => (
                   <MotionBox 
-                    key={prediction.id} 
+                    key={prediction.id || `prediction-${prediction.date}-${Math.random().toString(36).substr(2, 9)}`} 
                     p={4} 
                     borderWidth="1px" 
                     borderRadius="md"
@@ -471,7 +543,7 @@ const Dashboard = () => {
                           </Text>
                         </Flex>
                         <Flex align="center">
-                          <Icon as={FaCalendarAlt} color="gray.500" size="sm" mr={2} />
+                          <Icon as={FaCalendarAlt} color="gray.500" mr={2} />
                           <Text fontSize="sm" color="gray.500">
                             {new Date(prediction.date).toLocaleDateString()}
                           </Text>

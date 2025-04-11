@@ -331,6 +331,14 @@ const HealthInformation = () => {
         >
           Check Your Risk Now
         </Button>
+        <Button
+          colorScheme="blue"
+          size="lg"
+          ml={4}
+          onClick={() => window.location.href = '/health-info'}
+        >
+          Check Your Health-Info Now
+        </Button>
       </Box>
     </Container>
   );

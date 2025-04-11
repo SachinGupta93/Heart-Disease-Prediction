@@ -295,4 +295,109 @@ export const getFeatureExplanation = async (inputs) => {
   }
 };
 
+// Get health information
+export const getHealthInfo = async () => {
+  try {
+    // Sample static health information data
+    // In a real implementation, this would fetch from your backend API
+    const healthData = {
+      success: true,
+      data: {
+        risk_factors: [
+          {
+            name: "High Blood Pressure",
+            description: "Blood pressure consistently above 130/80 mmHg puts extra strain on your heart and blood vessels.",
+            recommendations: [
+              "Monitor your blood pressure regularly",
+              "Reduce sodium intake to less than 2,300mg per day",
+              "Maintain a healthy weight",
+              "Exercise regularly"
+            ]
+          },
+          {
+            name: "High Cholesterol",
+            description: "Elevated LDL cholesterol contributes to plaque buildup in your arteries, restricting blood flow.",
+            recommendations: [
+              "Get your cholesterol checked regularly",
+              "Limit saturated and trans fats in your diet",
+              "Eat foods rich in omega-3 fatty acids",
+              "Consider medication if lifestyle changes aren't enough"
+            ]
+          },
+          {
+            name: "Diabetes",
+            description: "High blood sugar damages blood vessels and can double your risk of heart disease.",
+            recommendations: [
+              "Monitor blood glucose levels as recommended by your doctor",
+              "Follow a balanced diet low in simple carbohydrates",
+              "Maintain regular physical activity",
+              "Take medications as prescribed"
+            ]
+          },
+          {
+            name: "Smoking",
+            description: "Chemicals in tobacco damage blood vessels, reduce oxygen in the blood, and increase blood pressure.",
+            recommendations: [
+              "Quit smoking completely - there is no safe level",
+              "Avoid secondhand smoke exposure",
+              "Consider nicotine replacement therapy or medication to help quit",
+              "Join a smoking cessation program for support"
+            ]
+          },
+          {
+            name: "Obesity",
+            description: "Excess weight puts strain on your heart and is linked to high blood pressure and diabetes.",
+            recommendations: [
+              "Aim for a BMI between 18.5 and 24.9",
+              "Focus on portion control",
+              "Increase physical activity",
+              "Consider getting help from a dietitian"
+            ]
+          }
+        ],
+        prevention_tips: [
+          "Aim for at least 150 minutes of moderate-intensity exercise per week",
+          "Eat a diet rich in fruits, vegetables, whole grains, and lean proteins",
+          "Limit sodium, added sugars, and unhealthy fats",
+          "Manage stress through mindfulness, meditation, or other relaxation techniques",
+          "Get 7-9 hours of quality sleep each night",
+          "Limit alcohol consumption to moderate levels",
+          "Schedule regular check-ups with your healthcare provider"
+        ],
+        resources: [
+          {
+            name: "American Heart Association",
+            url: "https://www.heart.org/"
+          },
+          {
+            name: "CDC Heart Disease Information",
+            url: "https://www.cdc.gov/heartdisease/"
+          },
+          {
+            name: "National Heart, Lung, and Blood Institute",
+            url: "https://www.nhlbi.nih.gov/"
+          },
+          {
+            name: "World Heart Federation",
+            url: "https://world-heart-federation.org/"
+          },
+          {
+            name: "Mayo Clinic Heart Disease Guide",
+            url: "https://www.mayoclinic.org/diseases-conditions/heart-disease/symptoms-causes/syc-20353118"
+          }
+        ]
+      }
+    };
+    
+    return healthData;
+  } catch (error) {
+    console.error('Error fetching health information:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch health information',
+      data: null
+    };
+  }
+};
+
 export default api;
