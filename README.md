@@ -193,9 +193,13 @@ backend/
 The application uses an ensemble of machine learning models for heart disease prediction:
 
 1. **Random Forest**: Primary model with high accuracy and feature importance capabilities
-2. **Neural Network**: Secondary model for ensemble predictions
+2. **Neural Network**: Secondary model for ensemble predictions, implemented in two versions:
+   - Scikit-learn MLPClassifier version (stored as `nn_model.pkl`)
+   - TensorFlow/Keras implementation (stored as a TensorFlow SavedModel with reference in `neural_network_model.pkl`)
 3. **Logistic Regression**: Used for comparison purposes
 4. **Support Vector Machine**: Used for comparison purposes
+
+The system is designed to work with either neural network implementation, prioritizing the scikit-learn version if available, and falling back to the TensorFlow version if needed.
 
 ### Model Performance Metrics
 

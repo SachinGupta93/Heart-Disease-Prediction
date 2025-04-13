@@ -9,12 +9,14 @@ import Navbar from './components/Navbar';
 import Header from './components/Header'
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary'; 
+import PredictionResult from './components/PredictionResult'; // Changed from lazy import to static import
 
 // Lazy-loaded components
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const PredictionForm = lazy(() => import('./components/PredictionForm'));
-const RiskSimulator = lazy(() => import('./components/RiskSimulator'));
+// const RiskSimulator = lazy(() => import('./components/RiskSimulator'));
 const PredictionHistory = lazy(() => import('./components/PredictionHistory'));
+const ShapExplanation = lazy(() => import('./components/ShapExplanation')); // Add explicit import for ShapExplanation
 const HealthInformation = lazy(() => import('./components/HealthInformation'));
 const HealthInfo = lazy(() => import('./components/HealthInfo'));
 const ExplainableAi = lazy(() => import('./components/ExplainableAi'));
@@ -60,7 +62,6 @@ function App() {
         <AuthProvider>
           <PredictionProvider>
             <ErrorBoundary>
-             <Header/>
               <Box minHeight="100vh" display="flex" flexDirection="column">
                 <Navbar />
                 <Box 
@@ -102,11 +103,21 @@ function App() {
                         <PredictionForm onPredictionUpdate={handlePredictionUpdate} />
                       } />
 
-                      <Route path="/simulator" element={
+                      {/* Add dedicated route for prediction results */}
+                      <Route path="/prediction-result" element={
+                        <PredictionResult />
+                      } />
+
+                      {/* Add dedicated route for SHAP explanations */}
+                      <Route path="/explanation" element={
+                        <ShapExplanation predictionData={currentPrediction} />
+                      } />
+
+                      {/* <Route path="/simulator" element={
                         <PrivateRoute>
                           <RiskSimulator onPredictionUpdate={handlePredictionUpdate} />
                         </PrivateRoute>
-                      } />
+                      } /> */}
 
                       <Route path="/explain-ai" element={
                         <PrivateRoute>

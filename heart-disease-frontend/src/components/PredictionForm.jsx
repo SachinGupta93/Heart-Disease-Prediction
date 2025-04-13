@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, FormControl, FormLabel, FormHelperText, Input, Select,
   NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper,
@@ -47,6 +48,7 @@ import { motion } from 'framer-motion';
 import { usePrediction } from '../contexts/PredictionContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getEnsemblePrediction, savePrediction } from '../services/api';
+import ModelSelector from './ModelSelector';
 
 // Create motion components for animations
 const MotionBox = motion(Box);
@@ -105,6 +107,7 @@ const PredictionForm = () => {
   const toast = useToast();
   const { updatePrediction } = usePrediction();
   const { currentUser } = useAuth();
+  const navigate = useNavigate(); // Add navigation hook
   
   // States
   const [formData, setFormData] = useState({
@@ -127,6 +130,7 @@ const PredictionForm = () => {
   const [showGuidance, setShowGuidance] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [formCompletion, setFormCompletion] = useState(0);
+  const [selectedModel, setSelectedModel] = useState('ensemble'); // Default to ensemble
   
   // Enhanced color mode values
   const cardBg = useColorModeValue('white', 'gray.700');
@@ -251,87 +255,91 @@ const PredictionForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate form
+    // Validate form before submission
     if (!validateForm()) {
       toast({
-        title: 'Please check your inputs',
-        description: 'Some fields have errors or are missing required values.',
+        title: 'Form validation error',
+        description: 'Please correct the errors in the form.',
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
-        position: 'top'
       });
       return;
     }
     
+    // Set loading state
     setIsSubmitting(true);
     
     try {
-      // Convert string values to appropriate types
-      const processedData = {
-        age: parseInt(formData.age),
-        sex: parseInt(formData.sex),
-        cp: parseInt(formData.cp),
-        trestbps: parseInt(formData.trestbps),
-        chol: parseInt(formData.chol),
-        fbs: formData.fbs ? parseInt(formData.fbs) : 0,
-        restecg: formData.restecg ? parseInt(formData.restecg) : 0,
-        thalach: parseInt(formData.thalach),
-        exang: parseInt(formData.exang),
-        oldpeak: formData.oldpeak ? parseFloat(formData.oldpeak) : 0,
-        slope: formData.slope ? parseInt(formData.slope) : 0,
-        ca: formData.ca ? parseInt(formData.ca) : 0,
-        thal: formData.thal ? parseInt(formData.thal) : 0
-      };
-      
-      // Call prediction API
-      const response = await getEnsemblePrediction(processedData);
-      
-      if (response?.success) {
-        // Format the prediction result
-        const result = {
-          prediction: response.data.prediction,
-          probability: response.data.probability,
-          probability_percent: (response.data.probability * 100).toFixed(1),
-          risk_level: response.data.risk_level || determineRiskLevel(response.data.probability),
-          message: response.data.message,
-          inputs: processedData,
-          date: new Date().toISOString()
-        };
+      // If using ensemble, use the ensemble endpoint
+      if (selectedModel === 'ensemble') {
+        const response = await getEnsemblePrediction(formData);
         
-        // Update context with prediction data
-        updatePrediction(result);
+        // Check if response is a fallback
+        if (response.data?.is_fallback) {
+          toast({
+            title: 'Using fallback prediction',
+            description: 'The server is taking too long to respond. Using a local estimation.',
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          });
+        }
         
-        // Save prediction to history if user is logged in
+        // Save prediction data to context
+        updatePrediction({
+          inputs: formData,
+          prediction: response.data?.primary_prediction?.prediction || 0,
+          probability: response.data?.primary_prediction?.probability || 0,
+          risk_level: response.data?.primary_prediction?.risk_level || determineRiskLevel(0),
+          model: response.data?.primary_prediction?.model || 'ensemble',
+          is_fallback: response.data?.is_fallback || false
+        });
+        
+        // If user is logged in, save prediction
         if (currentUser) {
           try {
-            await savePrediction(currentUser.uid, result);
+            await savePrediction({
+              user_id: currentUser.uid,
+              inputs: formData,
+              prediction: response.data?.primary_prediction?.prediction || 0,
+              probability: response.data?.primary_prediction?.probability || 0,
+              risk_level: response.data?.primary_prediction?.risk_level || determineRiskLevel(0),
+              model: response.data?.primary_prediction?.model || 'ensemble',
+              is_fallback: response.data?.is_fallback || false
+            });
           } catch (saveError) {
             console.error('Error saving prediction:', saveError);
           }
         }
         
         toast({
-          title: 'Prediction complete',
+          title: 'Analysis complete',
           description: 'Your heart disease risk assessment is ready.',
           status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        // Navigate to the prediction result page
+        navigate('/prediction-result');
+      } else {
+        toast({
+          title: 'Feature coming soon',
+          description: 'Individual model selection is coming soon!',
+          status: 'info',
           duration: 3000,
           isClosable: true,
-          position: 'top'
         });
-      } else {
-        throw new Error(response?.message || 'Failed to get prediction');
       }
-    } catch (error) {
-      console.error('Error making prediction:', error);
-      
+    } catch (err) {
+      console.error('Error making prediction:', err);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to process your request. Please try again.',
+        description: 'Could not get prediction results. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
-        position: 'top'
       });
     } finally {
       setIsSubmitting(false);

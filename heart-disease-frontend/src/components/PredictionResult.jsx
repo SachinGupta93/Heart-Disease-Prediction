@@ -10,19 +10,29 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalFooter, ModalBody, ModalCloseButton,
   useToast, Drawer, DrawerBody, DrawerFooter, DrawerHeader,
-  DrawerOverlay, DrawerContent, DrawerCloseButton
+  DrawerOverlay, DrawerContent, DrawerCloseButton, 
+  Link, Input, Textarea, Select, FormControl, FormLabel,
+  IconButton, InputGroup, InputRightElement, Grid
 } from '@chakra-ui/react';
 import { 
   FaHeartbeat, FaChartBar, FaInfoCircle, FaChevronDown, 
   FaChevronUp, FaExclamationTriangle, FaCheckCircle, 
   FaHospital, FaClipboardList, FaPhone, FaExternalLinkAlt, 
-  FaChartLine, FaAnalytics, FaStar, FaCommentAlt
+  FaChartLine, FaChartArea, FaStar, FaCommentAlt,
+  FaCalendarCheck, FaNutritionix, FaRunning, FaTablets,
+  FaFileDownload, FaShare, FaSmoking, FaWineGlass,
+  FaWeight, FaWalking, FaAllergies, FaMap, FaEnvelope, FaPrint,
+  FaSearch, FaUserMd, FaCalendarAlt, FaClock, FaMapMarkerAlt,
+  FaDownload, FaPaperPlane, FaWhatsapp, FaFacebook, FaTwitter,
+  FaLinkedin, FaCopy, FaFilePdf
 } from 'react-icons/fa';
 import { usePrediction } from '../contexts/PredictionContext';
 import ShapExplanation from './ShapExplanation';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { savePrediction } from '../services/firestore';
 import { trackEvent } from '../services/errorLogging';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const RISK_THRESHOLDS = {
   LOW: 0.3,
@@ -36,16 +46,41 @@ const PredictionResult = () => {
   const { isOpen: isRecommendationsOpen, onToggle: toggleRecommendations } = useDisclosure({ defaultIsOpen: true });
   const [isSaved, setIsSaved] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser } = useAuth();
   
   // Analytics and feedback states
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showActionPlan, setShowActionPlan] = useState(false);
   const { isOpen: isInsightModalOpen, onOpen: openInsightModal, onClose: closeInsightModal } = useDisclosure();
   const { isOpen: isFeedbackOpen, onOpen: openFeedback, onClose: closeFeedback } = useDisclosure();
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState('');
   const toast = useToast();
   const analyticsRef = useRef(null);
+  const actionPlanRef = useRef(null);
+  const resultRef = useRef(null);
+
+  // New modal states
+  const { isOpen: isDocFinderOpen, onOpen: openDocFinder, onClose: closeDocFinder } = useDisclosure();
+  const { isOpen: isEmergencyOpen, onOpen: openEmergency, onClose: closeEmergency } = useDisclosure();
+  const { isOpen: isScheduleOpen, onOpen: openSchedule, onClose: closeSchedule } = useDisclosure();
+  const { isOpen: isShareOpen, onOpen: openShare, onClose: closeShare } = useDisclosure();
+  
+  // Share state
+  const [doctorEmail, setDoctorEmail] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  
+  // Schedule state
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+  const [scheduleDoctor, setScheduleDoctor] = useState('');
+  const [scheduleNotes, setScheduleNotes] = useState('');
+  
+  // Location state for doctor finder
+  const [location, setLocation] = useState('');
+  const [specialty, setSpecialty] = useState('cardiologist');
+  const [searchRadius, setSearchRadius] = useState('10');
   
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -396,8 +431,536 @@ const PredictionResult = () => {
     }
   };
 
+  // New function to determine personalized lifestyle recommendations
+  const getLifestyleRecommendations = () => {
+    if (!predictionData || !inputs) return [];
+    
+    const recommendations = [];
+    
+    // Diet recommendations
+    if (inputs.chol > 200) {
+      recommendations.push({
+        category: "Diet",
+        title: "Heart-Healthy Diet",
+        description: "Follow a diet low in saturated fats and rich in fruits, vegetables, whole grains, and lean proteins to help lower cholesterol.",
+        actionItems: [
+          "Increase omega-3 fatty acids through fish or supplements",
+          "Reduce saturated fat intake (less than 7% of daily calories)",
+          "Add soluble fiber from oats, beans, and fruits"
+        ],
+        icon: FaNutritionix,
+        color: "green"
+      });
+    }
+    
+    // Exercise recommendations
+    if (inputs.thalach < 150 || inputs.exang === 1) {
+      recommendations.push({
+        category: "Exercise",
+        title: "Cardiovascular Fitness Program",
+        description: "A structured exercise program can improve heart function and reduce symptoms of angina over time.",
+        actionItems: [
+          "Start with 10-minute walking sessions and gradually increase",
+          "Aim for 150 minutes of moderate activity weekly",
+          "Consider cardiac rehabilitation if recommended by your doctor"
+        ],
+        icon: FaRunning,
+        color: "blue"
+      });
+    }
+    
+    // Lifestyle changes for blood pressure
+    if (inputs.trestbps > 130) {
+      recommendations.push({
+        category: "Lifestyle",
+        title: "Blood Pressure Management",
+        description: "Managing your blood pressure can significantly reduce your risk of heart disease complications.",
+        actionItems: [
+          "Reduce sodium intake to less than 1,500mg daily",
+          "Practice stress reduction techniques like meditation",
+          "Monitor blood pressure at home regularly"
+        ],
+        icon: FaHeartbeat,
+        color: "red"
+      });
+    }
+    
+    // Medication adherence for older patients or those with multiple risk factors
+    if (inputs.age > 55 || (inputs.chol > 200 && inputs.trestbps > 130)) {
+      recommendations.push({
+        category: "Medication",
+        title: "Medication Management",
+        description: "Proper medication adherence is critical for managing heart disease risk factors.",
+        actionItems: [
+          "Use pill organizers or reminder apps",
+          "Never skip doses of heart medications",
+          "Report any side effects to your doctor immediately"
+        ],
+        icon: FaTablets,
+        color: "purple"
+      });
+    }
+    
+    // Smoking cessation if applicable
+    if (inputs.currentSmoker === 1 || inputs.smoker === 1) {
+      recommendations.push({
+        category: "Habits",
+        title: "Smoking Cessation",
+        description: "Quitting smoking is the single most important step you can take for heart health.",
+        actionItems: [
+          "Ask your doctor about cessation aids (patches, gum, medications)",
+          "Join a support group or quit-smoking program",
+          "Set a quit date within the next 2 weeks"
+        ],
+        icon: FaSmoking,
+        color: "orange"
+      });
+    }
+    
+    // Weight management if BMI is high
+    if (inputs.bmi > 25 || inputs.obesity === 1) {
+      recommendations.push({
+        category: "Weight",
+        title: "Weight Management",
+        description: "Achieving a healthy weight can reduce strain on your heart and improve overall cardiovascular health.",
+        actionItems: [
+          "Set realistic goals (1-2 pounds per week)",
+          "Keep a food journal to track intake",
+          "Focus on portion control rather than strict dieting"
+        ],
+        icon: FaWeight,
+        color: "teal"
+      });
+    }
+    
+    // If none of the specific conditions apply, provide general recommendations
+    if (recommendations.length === 0) {
+      recommendations.push({
+        category: "Prevention",
+        title: "Preventive Health Maintenance",
+        description: "Even with lower risk, maintaining good habits is essential for long-term heart health.",
+        actionItems: [
+          "Schedule yearly physical examinations",
+          "Maintain a balanced diet rich in fruits and vegetables",
+          "Stay physically active with at least 30 minutes of exercise daily"
+        ],
+        icon: FaHeartbeat,
+        color: "green"
+      });
+    }
+    
+    return recommendations;
+  };
+  
+  // Function to calculate the user's 5-year risk trajectory
+  const calculateRiskTrajectory = () => {
+    if (!predictionData || !inputs) return null;
+    
+    const currentRisk = probability;
+    let riskReduction = 0;
+    
+    // Estimate risk reduction potential based on modifiable factors
+    if (inputs.chol > 200) riskReduction += 0.05;
+    if (inputs.trestbps > 130) riskReduction += 0.07;
+    if (inputs.currentSmoker === 1 || inputs.smoker === 1) riskReduction += 0.10;
+    if (inputs.bmi > 25 || inputs.obesity === 1) riskReduction += 0.04;
+    if (inputs.exang === 1) riskReduction += 0.06;
+    
+    // Calculate best and worst case scenarios
+    const bestCaseRisk = Math.max(0.05, currentRisk - riskReduction);
+    const worstCaseRisk = Math.min(0.95, currentRisk + (currentRisk * 0.2));
+    const unchangedRisk = currentRisk;
+    
+    return {
+      currentRisk,
+      bestCaseRisk,
+      worstCaseRisk,
+      unchangedRisk,
+      yearsProjected: 5,
+      potentialReduction: riskReduction,
+      hasMajorModifiableFactors: riskReduction > 0.05
+    };
+  };
+  
+  // Function to get treatment pathway recommendations based on risk level
+  const getTreatmentPathway = () => {
+    if (!predictionData || !risk_level) return [];
+    
+    const pathwaySteps = [];
+    
+    if (risk_level.includes("High")) {
+      pathwaySteps.push({
+        step: 1,
+        timeframe: "Immediate",
+        action: "Schedule a cardiology consultation",
+        description: "Have your complete cardiovascular health evaluated by a specialist."
+      });
+      pathwaySteps.push({
+        step: 2,
+        timeframe: "Within 1 month",
+        action: "Complete recommended diagnostic tests",
+        description: "May include ECG, stress test, echocardiogram, or blood tests."
+      });
+      pathwaySteps.push({
+        step: 3,
+        timeframe: "Within 2 months",
+        action: "Begin appropriate treatment plan",
+        description: "May include medication, lifestyle changes, or further evaluation."
+      });
+      pathwaySteps.push({
+        step: 4,
+        timeframe: "Ongoing",
+        action: "Regular follow-up visits",
+        description: "Typically every 3-6 months to monitor progress and adjust treatment."
+      });
+    } else if (risk_level.includes("Moderate")) {
+      pathwaySteps.push({
+        step: 1,
+        timeframe: "Within 1 month",
+        action: "Schedule a visit with your primary care physician",
+        description: "Discuss your heart disease risk assessment results."
+      });
+      pathwaySteps.push({
+        step: 2,
+        timeframe: "Within 3 months",
+        action: "Complete baseline testing",
+        description: "May include lipid panel, blood pressure monitoring, and glucose testing."
+      });
+      pathwaySteps.push({
+        step: 3,
+        timeframe: "Within 6 months",
+        action: "Implement lifestyle modifications",
+        description: "Follow dietary, exercise, and other lifestyle recommendations."
+      });
+      pathwaySteps.push({
+        step: 4,
+        timeframe: "Annually",
+        action: "Reassess cardiovascular risk",
+        description: "Track your progress and make adjustments to your health plan."
+      });
+    } else {
+      pathwaySteps.push({
+        step: 1,
+        timeframe: "Within 3 months",
+        action: "Regular check-up with primary care provider",
+        description: "Share these assessment results during your next routine visit."
+      });
+      pathwaySteps.push({
+        step: 2,
+        timeframe: "Annually",
+        action: "Routine preventive screening",
+        description: "Including blood pressure, cholesterol, and glucose checks."
+      });
+      pathwaySteps.push({
+        step: 3,
+        timeframe: "Ongoing",
+        action: "Maintain heart-healthy lifestyle",
+        description: "Continue with healthy diet, regular exercise, and stress management."
+      });
+      pathwaySteps.push({
+        step: 4,
+        timeframe: "Every 5 years",
+        action: "Comprehensive cardiovascular assessment",
+        description: "For early detection of any developing risk factors."
+      });
+    }
+    
+    return pathwaySteps;
+  };
+  
+  // Get data for new components
+  const lifestyleRecommendations = getLifestyleRecommendations();
+  const riskTrajectory = calculateRiskTrajectory();
+  const treatmentPathway = getTreatmentPathway();
+
+  // Autoscroll to action plan section when it's opened
+  useEffect(() => {
+    if (showActionPlan && actionPlanRef.current) {
+      setTimeout(() => {
+        actionPlanRef.current.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [showActionPlan]);
+
+  // PDF generation function
+  const generatePDF = async () => {
+    if (!resultRef.current) return;
+    
+    try {
+      toast({
+        title: "Generating PDF...",
+        status: "info",
+        duration: 2000,
+        isClosable: true
+      });
+      
+      const element = resultRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210; 
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`Heart_Health_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "PDF Generated Successfully",
+        description: "Your heart health report has been downloaded",
+        status: "success",
+        duration: 3000,
+        isClosable: true
+      });
+      
+      // Track PDF generation event
+      trackEvent('report_pdf_downloaded', {
+        userId: currentUser?.uid || 'anonymous',
+        riskLevel: risk_level
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "Unable to generate PDF report. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+  
+  // Function to handle sharing results with doctor
+  const handleShareWithDoctor = async () => {
+    if (!doctorEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your doctor's email address.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+    
+    setShareLoading(true);
+    
+    try {
+      // Simulating sending email to doctor (in a real app, this would connect to a backend API)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Track sharing event
+      trackEvent('results_shared_with_doctor', {
+        userId: currentUser?.uid || 'anonymous',
+        riskLevel: risk_level,
+        hasMessage: shareMessage.length > 0
+      });
+      
+      setShareLoading(false);
+      closeShare();
+      
+      toast({
+        title: "Results Shared Successfully",
+        description: `Your results have been shared with ${doctorEmail}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true
+      });
+      
+      // Reset form
+      setDoctorEmail('');
+      setShareMessage('');
+    } catch (error) {
+      console.error("Error sharing results:", error);
+      setShareLoading(false);
+      
+      toast({
+        title: "Sharing Failed",
+        description: "Unable to share results. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+  
+  // Function to handle scheduling a follow-up appointment
+  const handleScheduleAppointment = async () => {
+    if (!scheduleDate || !scheduleTime) {
+      toast({
+        title: "Date and Time Required",
+        description: "Please select a date and time for your appointment.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+    
+    try {
+      // Simulating scheduling API call (in a real app, this would connect to a calendar/scheduling service)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Track appointment scheduling event
+      trackEvent('follow_up_scheduled', {
+        userId: currentUser?.uid || 'anonymous',
+        riskLevel: risk_level,
+        withDoctor: scheduleDoctor.length > 0
+      });
+      
+      closeSchedule();
+      
+      toast({
+        title: "Appointment Scheduled",
+        description: `Your appointment has been scheduled for ${scheduleDate} at ${scheduleTime}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true
+      });
+      
+      // Reset form
+      setScheduleDate('');
+      setScheduleTime('');
+      setScheduleDoctor('');
+      setScheduleNotes('');
+    } catch (error) {
+      console.error("Error scheduling appointment:", error);
+      toast({
+        title: "Scheduling Failed",
+        description: "Unable to schedule appointment. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+  
+  // Function to find doctors in the area
+  const handleFindDoctors = async () => {
+    if (!location) {
+      toast({
+        title: "Location Required",
+        description: "Please enter your location to find doctors nearby.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+    
+    try {
+      // In a real app, this would call a doctor lookup API
+      // For now, we'll simulate the API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Track doctor search event
+      trackEvent('doctor_search', {
+        userId: currentUser?.uid || 'anonymous',
+        specialty: specialty,
+        location: location
+      });
+      
+      toast({
+        title: "Doctors Found",
+        description: `We found several ${specialty}s near ${location}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true
+      });
+      
+      // We don't close the modal here to show the "found" doctors
+    } catch (error) {
+      console.error("Error finding doctors:", error);
+      toast({
+        title: "Search Failed",
+        description: "Unable to find doctors at this time. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+  
+  // Function to generate action plan PDF
+  const generateActionPlanPDF = async () => {
+    if (!actionPlanRef.current) return;
+    
+    try {
+      toast({
+        title: "Generating Action Plan...",
+        status: "info",
+        duration: 2000,
+        isClosable: true
+      });
+      
+      const element = actionPlanRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210; 
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`Heart_Health_Action_Plan_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "Action Plan Downloaded",
+        description: "Your personalized health action plan has been saved as a PDF",
+        status: "success",
+        duration: 3000,
+        isClosable: true
+      });
+      
+      // Track action plan download event
+      trackEvent('action_plan_downloaded', {
+        userId: currentUser?.uid || 'anonymous',
+        riskLevel: risk_level
+      });
+    } catch (error) {
+      console.error("Error generating action plan PDF:", error);
+      toast({
+        title: "Download Failed",
+        description: "Unable to generate action plan PDF. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+
+  // Function to handle emergency contact
+  const handleEmergencyContact = () => {
+    // In a real app, this might connect to emergency services or show emergency numbers
+    openEmergency();
+    
+    // Track emergency contact event
+    trackEvent('emergency_contact_opened', {
+      userId: currentUser?.uid || 'anonymous',
+      riskLevel: risk_level
+    });
+  };
+
   return (
-    <VStack spacing={6} align="stretch">
+    <VStack spacing={6} align="stretch" ref={resultRef}>
       <Box 
         p={6} 
         shadow="md" 
@@ -572,6 +1135,7 @@ const PredictionResult = () => {
                   variant="outline"
                   size="sm"
                   width="full"
+                  onClick={generatePDF}
                 >
                   Download Report PDF
                 </Button>
@@ -580,17 +1144,26 @@ const PredictionResult = () => {
           </SimpleGrid>
         </VStack>
         
-        {/* Add Analytics Button at the bottom of your main card */}
-        <Flex mt={4} justifyContent="center">
+        {/* Add Analytics and Action Plan Buttons */}
+        <Flex mt={4} justifyContent="center" flexWrap="wrap" gap={2}>
           <Button
-            leftIcon={<Icon as={FaAnalytics} />}
+            leftIcon={<Icon as={FaChartArea} />}
             colorScheme="purple"
             variant="outline"
             size="sm"
             onClick={() => setShowAnalytics(!showAnalytics)}
-            mr={3}
           >
             {showAnalytics ? 'Hide Analytics' : 'Show Health Analytics'}
+          </Button>
+          
+          <Button
+            leftIcon={<Icon as={FaClipboardList} />}
+            colorScheme="blue"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowActionPlan(!showActionPlan)}
+          >
+            {showActionPlan ? 'Hide Action Plan' : 'Personal Health Action Plan'}
           </Button>
           
           <Button
@@ -659,6 +1232,7 @@ const PredictionResult = () => {
             leftIcon={<Icon as={FaPhone} />}
             colorScheme="brand"
             variant="outline"
+            onClick={handleEmergencyContact}
           >
             Emergency Contact
           </Button>
@@ -667,6 +1241,7 @@ const PredictionResult = () => {
             leftIcon={<Icon as={FaHospital} />}
             colorScheme="brand"
             variant="outline"
+            onClick={openDocFinder}
           >
             Find a Doctor
           </Button>
@@ -683,7 +1258,7 @@ const PredictionResult = () => {
       
       {/* Action buttons */}
       <Flex mt={8} justify="space-between">
-        <Button colorScheme="blue" variant="outline">
+        <Button colorScheme="blue" variant="outline"  onClick={() => window.location.href = '/risk-assessment'}>
           New Prediction
         </Button>
         
@@ -709,7 +1284,7 @@ const PredictionResult = () => {
           mt={4}
         >
           <Heading size="md" mb={4} display="flex" alignItems="center">
-            <Icon as={FaAnalytics} mr={2} color="purple.500" />
+            <Icon as={FaChartArea} mr={2} color="purple.500" />
             Detailed Health Analytics
           </Heading>
           
@@ -869,6 +1444,199 @@ const PredictionResult = () => {
         </Box>
       </Collapse>
       
+      {/* New Health Action Plan Section */}
+      <Collapse in={showActionPlan} animateOpacity>
+        <Box 
+          ref={actionPlanRef}
+          p={6} 
+          shadow="md" 
+          borderWidth="1px" 
+          borderRadius="lg" 
+          bg={cardBg}
+          borderColor={borderColor}
+          mt={4}
+        >
+          <Heading size="md" mb={4} display="flex" alignItems="center">
+            <Icon as={FaClipboardList} mr={2} color="blue.500" />
+            Your Personalized Health Action Plan
+          </Heading>
+          
+          <Text mb={6}>
+            Based on your assessment results, we've created a personalized action plan to help you improve 
+            your heart health and potentially reduce your risk of heart disease.
+          </Text>
+          
+          {/* Lifestyle Recommendations Section */}
+          <Box mb={8}>
+            <Heading size="sm" mb={4} color="blue.600">
+              Key Lifestyle Recommendations
+            </Heading>
+            
+            {lifestyleRecommendations.map((rec, index) => (
+              <Box 
+                key={index} 
+                p={4} 
+                mb={4} 
+                borderRadius="md" 
+                bg={`${rec.color}.50`}
+                borderLeft="4px solid" 
+                borderLeftColor={`${rec.color}.500`}
+              >
+                <Flex align="center" mb={2}>
+                  <Icon as={rec.icon} color={`${rec.color}.500`} boxSize={5} mr={2} />
+                  <Text fontWeight="bold">{rec.title}</Text>
+                  <Badge ml={2} colorScheme={rec.color}>{rec.category}</Badge>
+                </Flex>
+                
+                <Text fontSize="sm" mb={3}>{rec.description}</Text>
+                
+                <Text fontWeight="medium" fontSize="sm" mb={1}>Action Steps:</Text>
+                <List spacing={1}>
+                  {rec.actionItems.map((item, i) => (
+                    <ListItem key={i} display="flex" fontSize="sm">
+                      <ListIcon as={FaCheckCircle} color={`${rec.color}.500`} mt={1} />
+                      {item}
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            ))}
+          </Box>
+          
+          {/* Risk Trajectory Section */}
+          {riskTrajectory && (
+            <Box mb={8} p={4} borderRadius="md" bg={lightBg}>
+              <Heading size="sm" mb={4} color="blue.600">
+                Your 5-Year Risk Trajectory
+              </Heading>
+              
+              <Text fontSize="sm" mb={4}>
+                This chart shows how your heart disease risk could change over the next {riskTrajectory.yearsProjected} years 
+                based on different scenarios:
+              </Text>
+              
+              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={4}>
+                <Box p={3} bg={cardBg} borderRadius="md" borderLeft="4px solid" borderLeftColor="red.500">
+                  <Text fontSize="sm" fontWeight="medium" mb={1}>If Risk Factors Worsen</Text>
+                  <Text fontSize="xl" fontWeight="bold" color="red.500">
+                    {(riskTrajectory.worstCaseRisk * 100).toFixed(1)}%
+                  </Text>
+                  <Text fontSize="xs" color="gray.500">Estimated risk in 5 years</Text>
+                </Box>
+                
+                <Box p={3} bg={cardBg} borderRadius="md" borderLeft="4px solid" borderLeftColor="yellow.500">
+                  <Text fontSize="sm" fontWeight="medium" mb={1}>If No Changes Made</Text>
+                  <Text fontSize="xl" fontWeight="bold" color="yellow.500">
+                    {(riskTrajectory.unchangedRisk * 100).toFixed(1)}%
+                  </Text>
+                  <Text fontSize="xs" color="gray.500">Estimated risk in 5 years</Text>
+                </Box>
+                
+                <Box p={3} bg={cardBg} borderRadius="md" borderLeft="4px solid" borderLeftColor="green.500">
+                  <Text fontSize="sm" fontWeight="medium" mb={1}>With Health Improvements</Text>
+                  <Text fontSize="xl" fontWeight="bold" color="green.500">
+                    {(riskTrajectory.bestCaseRisk * 100).toFixed(1)}%
+                  </Text>
+                  <Text fontSize="xs" color="gray.500">Estimated risk in 5 years</Text>
+                </Box>
+              </SimpleGrid>
+              
+              {riskTrajectory.hasMajorModifiableFactors && (
+                <Alert status="info" variant="left-accent" borderRadius="md">
+                  <AlertIcon />
+                  <Box>
+                    <Text fontWeight="medium">Good news!</Text>
+                    <Text fontSize="sm">
+                      You have modifiable risk factors that could potentially reduce your risk by up to {(riskTrajectory.potentialReduction * 100).toFixed(0)}% 
+                      by following the recommended lifestyle changes and medical advice.
+                    </Text>
+                  </Box>
+                </Alert>
+              )}
+            </Box>
+          )}
+          
+          {/* Treatment Pathway Section */}
+          <Box mb={6}>
+            <Heading size="sm" mb={4} color="blue.600">
+              Recommended Care Pathway
+            </Heading>
+            
+            <Box borderRadius="md" borderWidth="1px" borderColor={borderColor} overflow="hidden">
+              {treatmentPathway.map((step, index) => (
+                <Box 
+                  key={index} 
+                  p={4} 
+                  borderBottomWidth={index < treatmentPathway.length - 1 ? "1px" : "0"}
+                  borderBottomColor={borderColor}
+                  bg={index % 2 === 0 ? lightBg : cardBg}
+                >
+                  <Flex align="center" mb={2}>
+                    <Box 
+                      w="24px" 
+                      h="24px" 
+                      borderRadius="full" 
+                      bg="blue.500" 
+                      color="white" 
+                      fontSize="sm"
+                      fontWeight="bold" 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center"
+                      mr={3}
+                    >
+                      {step.step}
+                    </Box>
+                    <Text fontWeight="bold">{step.action}</Text>
+                    <Badge ml="auto" colorScheme="blue">{step.timeframe}</Badge>
+                  </Flex>
+                  <Text fontSize="sm" ml="33px">{step.description}</Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+          
+          {/* Action Buttons */}
+          <Flex mt={6} justify="center" wrap="wrap" gap={3}>
+            <Button
+              leftIcon={<Icon as={FaFileDownload} />}
+              colorScheme="blue"
+              size="sm"
+              onClick={generateActionPlanPDF}
+            >
+              Download Action Plan
+            </Button>
+            
+            <Button
+              leftIcon={<Icon as={FaCalendarCheck} />}
+              colorScheme="green"
+              size="sm"
+              onClick={openSchedule}
+            >
+              Schedule Follow-up
+            </Button>
+            
+            <Button
+              leftIcon={<Icon as={FaShare} />}
+              colorScheme="purple"
+              size="sm"
+              variant="outline"
+              onClick={openShare}
+            >
+              Share With Doctor
+            </Button>
+          </Flex>
+          
+          <Alert status="info" mt={6} borderRadius="md">
+            <AlertIcon />
+            <Text fontSize="sm">
+              This action plan is generated based on your assessment data and general health guidelines.
+              Always consult with healthcare professionals before making significant lifestyle or medication changes.
+            </Text>
+          </Alert>
+        </Box>
+      </Collapse>
+      
       {/* Personalized Insights Modal */}
       <Modal isOpen={isInsightModalOpen} onClose={closeInsightModal} size="lg">
         <ModalOverlay />
@@ -999,6 +1767,295 @@ const PredictionResult = () => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Share Results Modal */}
+      <Modal isOpen={isShareOpen} onClose={closeShare}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Share Results with Doctor</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl id="doctorEmail" isRequired>
+              <FormLabel>Doctor's Email</FormLabel>
+              <Input 
+                type="email" 
+                value={doctorEmail} 
+                onChange={(e) => setDoctorEmail(e.target.value)} 
+                placeholder="doctor@example.com" 
+              />
+            </FormControl>
+            
+            <FormControl id="shareMessage" mt={4}>
+              <FormLabel>Message (optional)</FormLabel>
+              <Textarea 
+                value={shareMessage} 
+                onChange={(e) => setShareMessage(e.target.value)} 
+                placeholder="Include any questions or concerns for your doctor..."
+                size="sm"
+                rows={4}
+              />
+            </FormControl>
+            
+            <Box mt={4} p={3} bg="blue.50" borderRadius="md">
+              <Text fontSize="sm">
+                This will send your heart health assessment results to your doctor's email,
+                along with your contact information for follow-up.
+              </Text>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" mr={3} onClick={closeShare}>
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="blue" 
+              onClick={handleShareWithDoctor}
+              isLoading={shareLoading}
+              loadingText="Sharing..."
+            >
+              Share Results
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* Schedule Follow-up Modal */}
+      <Modal isOpen={isScheduleOpen} onClose={closeSchedule}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Schedule Follow-up Appointment</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <SimpleGrid columns={2} spacing={4}>
+              <FormControl id="scheduleDate" isRequired>
+                <FormLabel>Date</FormLabel>
+                <Input 
+                  type="date" 
+                  value={scheduleDate} 
+                  onChange={(e) => setScheduleDate(e.target.value)} 
+                />
+              </FormControl>
+              
+              <FormControl id="scheduleTime" isRequired>
+                <FormLabel>Time</FormLabel>
+                <Input 
+                  type="time" 
+                  value={scheduleTime} 
+                  onChange={(e) => setScheduleTime(e.target.value)} 
+                />
+              </FormControl>
+            </SimpleGrid>
+            
+            <FormControl id="scheduleDoctor" mt={4}>
+              <FormLabel>Doctor's Name (optional)</FormLabel>
+              <Input 
+                value={scheduleDoctor} 
+                onChange={(e) => setScheduleDoctor(e.target.value)} 
+                placeholder="Dr. Smith"
+              />
+            </FormControl>
+            
+            <FormControl id="scheduleNotes" mt={4}>
+              <FormLabel>Notes (optional)</FormLabel>
+              <Textarea 
+                value={scheduleNotes} 
+                onChange={(e) => setScheduleNotes(e.target.value)} 
+                placeholder="Any special requests or information..."
+                rows={3}
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" mr={3} onClick={closeSchedule}>
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="green" 
+              onClick={handleScheduleAppointment}
+            >
+              Schedule Appointment
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* Find Doctor Modal */}
+      <Modal isOpen={isDocFinderOpen} onClose={closeDocFinder} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Find a Heart Specialist</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl id="location" isRequired mb={4}>
+              <FormLabel>Your Location</FormLabel>
+              <InputGroup>
+                <Input 
+                  value={location} 
+                  onChange={(e) => setLocation(e.target.value)} 
+                  placeholder="City, State or Zip Code"
+                />
+                <InputRightElement>
+                  <Icon as={FaMapMarkerAlt} color="gray.500" />
+                </InputRightElement>
+              </InputGroup>
+            </FormControl>
+            
+            <SimpleGrid columns={2} spacing={4} mb={4}>
+              <FormControl id="specialty">
+                <FormLabel>Specialty</FormLabel>
+                <Select 
+                  value={specialty} 
+                  onChange={(e) => setSpecialty(e.target.value)}
+                >
+                  <option value="cardiologist">Cardiologist</option>
+                  <option value="cardiac surgeon">Cardiac Surgeon</option>
+                  <option value="electrophysiologist">Electrophysiologist</option>
+                  <option value="interventional cardiologist">Interventional Cardiologist</option>
+                </Select>
+              </FormControl>
+              
+              <FormControl id="distance">
+                <FormLabel>Search Radius (miles)</FormLabel>
+                <Select 
+                  value={searchRadius} 
+                  onChange={(e) => setSearchRadius(e.target.value)}
+                >
+                  <option value="5">5 miles</option>
+                  <option value="10">10 miles</option>
+                  <option value="25">25 miles</option>
+                  <option value="50">50 miles</option>
+                </Select>
+              </FormControl>
+            </SimpleGrid>
+            
+            <Button
+              colorScheme="blue"
+              leftIcon={<Icon as={FaSearch} />}
+              width="full"
+              mb={6}
+              onClick={handleFindDoctors}
+            >
+              Find Doctors
+            </Button>
+            
+            {location && (
+              <Box mt={2}>
+                <Text fontWeight="medium" mb={3}>Top Rated Heart Specialists Near {location}</Text>
+                <VStack align="stretch" spacing={4}>
+                  {/* Doctor listings would be populated dynamically in a real app */}
+                  {/* Showing placeholder data for demonstration */}
+                  <Box p={3} borderWidth="1px" borderRadius="md">
+                    <Flex>
+                      <Icon as={FaUserMd} boxSize={10} mr={4} color="blue.500" />
+                      <Box>
+                        <Text fontWeight="bold">Dr. Sarah Johnson</Text>
+                        <Text fontSize="sm">Cardiologist, Heart Center</Text>
+                        <Text fontSize="sm">2.3 miles away • Highly rated</Text>
+                        <HStack mt={2}>
+                          <Button size="xs" colorScheme="blue" leftIcon={<Icon as={FaPhone} />}>
+                            Call
+                          </Button>
+                          <Button size="xs" colorScheme="green" leftIcon={<Icon as={FaCalendarAlt} />}>
+                            Book
+                          </Button>
+                        </HStack>
+                      </Box>
+                    </Flex>
+                  </Box>
+                  
+                  <Box p={3} borderWidth="1px" borderRadius="md">
+                    <Flex>
+                      <Icon as={FaUserMd} boxSize={10} mr={4} color="blue.500" />
+                      <Box>
+                        <Text fontWeight="bold">Dr. Michael Chen</Text>
+                        <Text fontSize="sm">Interventional Cardiologist, University Hospital</Text>
+                        <Text fontSize="sm">3.8 miles away • Top rated</Text>
+                        <HStack mt={2}>
+                          <Button size="xs" colorScheme="blue" leftIcon={<Icon as={FaPhone} />}>
+                            Call
+                          </Button>
+                          <Button size="xs" colorScheme="green" leftIcon={<Icon as={FaCalendarAlt} />}>
+                            Book
+                          </Button>
+                        </HStack>
+                      </Box>
+                    </Flex>
+                  </Box>
+                </VStack>
+              </Box>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={closeDocFinder}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* Emergency Contact Modal */}
+      <Modal isOpen={isEmergencyOpen} onClose={closeEmergency}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader bg="red.500" color="white">Emergency Heart Health Resources</ModalHeader>
+          <ModalCloseButton color="white" />
+          <ModalBody>
+            <Alert status="error" variant="left-accent" mb={4}>
+              <AlertIcon />
+              <Box>
+                <Text fontWeight="bold">If you're experiencing a heart emergency:</Text>
+                <Text>Call 911 immediately or go to your nearest emergency room</Text>
+              </Box>
+            </Alert>
+            
+            <Heading size="sm" mb={3}>Warning Signs That Require Immediate Attention:</Heading>
+            <List spacing={2} mb={4}>
+              <ListItem display="flex">
+                <ListIcon as={FaExclamationTriangle} color="red.500" mt={1} />
+                <Text>Chest pain or discomfort that lasts more than a few minutes</Text>
+              </ListItem>
+              <ListItem display="flex">
+                <ListIcon as={FaExclamationTriangle} color="red.500" mt={1} />
+                <Text>Pain that spreads to the jaw, neck, or back</Text>
+              </ListItem>
+              <ListItem display="flex">
+                <ListIcon as={FaExclamationTriangle} color="red.500" mt={1} />
+                <Text>Shortness of breath with or without chest discomfort</Text>
+              </ListItem>
+              <ListItem display="flex">
+                <ListIcon as={FaExclamationTriangle} color="red.500" mt={1} />
+                <Text>Cold sweat, nausea, or lightheadedness</Text>
+              </ListItem>
+            </List>
+            
+            <Divider my={4} />
+            
+            <Heading size="sm" mb={3}>Helplines and Resources:</Heading>
+            <VStack align="stretch" spacing={3}>
+              <Flex justify="space-between" align="center">
+                <Text fontWeight="medium">American Heart Association:</Text>
+                <Button size="sm" leftIcon={<Icon as={FaPhone} />} colorScheme="blue">
+                  1-800-AHA-USA-1
+                </Button>
+              </Flex>
+              <Flex justify="space-between" align="center">
+                <Text fontWeight="medium">Heart Disease Hotline:</Text>
+                <Button size="sm" leftIcon={<Icon as={FaPhone} />} colorScheme="blue">
+                  1-800-242-8721
+                </Button>
+              </Flex>
+              <Flex justify="space-between" align="center">
+                <Text fontWeight="medium">Find Nearest Hospital:</Text>
+                <Button size="sm" leftIcon={<Icon as={FaMapMarkerAlt} />} colorScheme="green">
+                  Locate Now
+                </Button>
+              </Flex>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={closeEmergency}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
     </VStack>
   );
 };

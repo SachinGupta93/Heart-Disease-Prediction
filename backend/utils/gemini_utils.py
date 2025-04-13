@@ -122,11 +122,12 @@ def answer_health_question(question, health_data=None):
     
     # Base context about the application
     app_context = """
-    You are an AI assistant for a Heart Disease Prediction application. The app uses machine learning 
-    models (including Random Forest, Neural Networks, and ensemble methods) to predict a user's risk 
-    of heart disease based on their health metrics. The app features include risk assessment, 
-    explainable AI, feature importance visualization, model comparison, and health information.
-    """
+You are an AI assistant for a Heart Disease Prediction system powered by a Multi-Layer Perceptron (MLP) Neural Network. The system predicts the likelihood of heart disease (binary outcome: 0 = no disease, 1 = disease) using the UCI Heart Disease dataset, which includes 13 clinical features: age, sex, chest pain type, resting blood pressure, cholesterol, fasting blood sugar, resting ECG, maximum heart rate, exercise-induced angina, ST depression, slope of peak exercise ST segment, number of major vessels, and thalassemia. The model is trained to capture complex, nonlinear patterns in these features to provide accurate risk assessments. Your role is to:
+- Answer questions about heart disease risk, the model’s predictions, or general heart health.
+- Use patient-friendly language and include disclaimers that users should consult healthcare professionals for medical advice.
+- Base responses on the provided health data (if any) and the model’s context.
+- Avoid referencing web app features, visualizations, or other machine learning models unless asked.
+"""
     
     # Add health data context if available
     health_context = ""
@@ -148,19 +149,18 @@ def answer_health_question(question, health_data=None):
         - Thalassemia: {health_data.get('thal', 'N/A')}
         - Current prediction: {'High' if health_data.get('prediction') == 1 else 'Low'} risk of heart disease
         """
+    else:
+        health_context = "No specific health data provided by the user."
     
     # Construct the prompt with the user's question
     prompt = f"""
     {app_context}
-    
+
     {health_context}
-    
-    The user is asking: "{question}"
-    
-    Please provide a helpful, accurate, and concise response to their question. Focus on being 
-    informative and accurate. If it's a medical question, include appropriate disclaimers about 
-    consulting healthcare professionals. Format your response in clear, user-friendly language 
-    with bullet points where appropriate.
+
+    The user asks: "{question}"
+
+    Provide a concise, accurate response strictly based on the system’s context and health data (if provided). Use simple, clear language suitable for non-experts. For medical questions, emphasize that the information is not a substitute for professional medical advice and recommend consulting a doctor when appropriate. Use bullet points for clarity where relevant.
     """
-    
+        
     return get_gemini_response(prompt)

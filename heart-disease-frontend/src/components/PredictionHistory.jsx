@@ -7,18 +7,22 @@ import {
   useToast, useColorModeValue, SimpleGrid, Tabs, TabList, Tab, 
   TabPanels, TabPanel, Stat, StatLabel, StatNumber, StatHelpText,
   Divider, Tooltip, Modal, ModalOverlay, ModalContent, 
-  ModalHeader, ModalFooter, ModalBody, ModalCloseButton
+  ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
+  FormControl, FormLabel, NumberInput, NumberInputField, Select,
+  RadioGroup, Radio, VStack, FormHelperText, FormErrorMessage, Input
 } from '@chakra-ui/react';
-import { DeleteIcon, DownloadIcon, InfoIcon } from '@chakra-ui/icons';
+import { DeleteIcon, DownloadIcon, InfoIcon, ChevronRightIcon, CheckIcon } from '@chakra-ui/icons';
 import { 
   FaHistory, FaChartLine, FaChartBar, FaExclamationTriangle,
   FaCalendarAlt, FaHeartbeat, FaArrowUp, FaArrowDown, 
   FaEquals, FaFileMedical, FaFileExport, FaTrashAlt,
-  FaChartPie, FaTachometerAlt, FaStethoscope, FaDownload, FaTrash, FaInfoCircle
+  FaChartPie, FaTachometerAlt, FaStethoscope, FaDownload, FaTrash, FaInfoCircle,
+  FaCalculator, FaChild, FaVenusMars, FaHeart, FaTint, FaFlask, FaRunning,
+  FaHospitalUser, FaCapsules
 } from 'react-icons/fa';
 import { MdTimeline, MdShowChart, MdInsights } from 'react-icons/md';
 import { BsGraphUp } from 'react-icons/bs';
-import { getUserPredictions, deletePrediction } from '../services/api';
+import { getUserPredictions, deletePrediction, getEnsemblePrediction, savePrediction } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -28,6 +32,7 @@ import {
 } from 'recharts';
 
 const PredictionHistory = () => {
+  // Original prediction history state
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,9 +40,30 @@ const PredictionHistory = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [chartReady, setChartReady] = useState(false);
   
+  // New prediction form state
+  const [showPredictionForm, setShowPredictionForm] = useState(false);
+  const [formData, setFormData] = useState({
+    age: '',
+    sex: '',
+    cp: '',
+    trestbps: '',
+    chol: '',
+    thalach: '',
+    exang: '',
+    fbs: '',
+    restecg: '',
+    oldpeak: '',
+    slope: '',
+    ca: '',
+    thal: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [isPredicting, setIsPredicting] = useState(false);
+
   // Create a separate disclosure for the clear history modal 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isClearModalOpen, onOpen: onOpenClearModal, onClose: onCloseClearModal } = useDisclosure();
+  const { isOpen: isPredictionModalOpen, onOpen: onOpenPredictionModal, onClose: onClosePredictionModal } = useDisclosure();
   const cancelRef = useRef();
   const toast = useToast();
   
@@ -50,6 +76,7 @@ const PredictionHistory = () => {
   const headerBg = useColorModeValue('gray.50', 'gray.900');
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
   const headingColor = useColorModeValue('blue.600', 'blue.300');
+  const fieldBg = useColorModeValue('gray.50', 'gray.600');
   
   // Risk colors remain consistent across light/dark modes
   const RISK_COLORS = {
@@ -128,6 +155,194 @@ const PredictionHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Form handling functions
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+    
+    // Clear error for this field if it exists
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: null
+      });
+    }
+  };
+  
+  const handleNumberChange = (name, value) => {
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+    
+    // Clear error for this field if it exists
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: null
+      });
+    }
+  };
+
+  // Reset form data
+  const resetForm = () => {
+    setFormData({
+      age: '',
+      sex: '',
+      cp: '',
+      trestbps: '',
+      chol: '',
+      thalach: '',
+      exang: '',
+      fbs: '',
+      restecg: '',
+      oldpeak: '',
+      slope: '',
+      ca: '',
+      thal: ''
+    });
+    setFormErrors({});
+  };
+
+  // Validate form for simplified prediction
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+    
+    // Required fields for minimalist prediction
+    const requiredFields = ['age', 'sex', 'cp', 'trestbps', 'chol', 'thalach', 'exang'];
+    requiredFields.forEach(field => {
+      if (!formData[field]) {
+        errors[field] = 'This field is required';
+        isValid = false;
+      }
+    });
+    
+    // Age validation
+    if (formData.age && (formData.age < 20 || formData.age > 100)) {
+      errors.age = 'Age must be between 20 and 100';
+      isValid = false;
+    }
+    
+    // Blood pressure validation
+    if (formData.trestbps && (formData.trestbps < 80 || formData.trestbps > 200)) {
+      errors.trestbps = 'Blood pressure must be between 80 and 200 mm Hg';
+      isValid = false;
+    }
+    
+    // Cholesterol validation
+    if (formData.chol && (formData.chol < 100 || formData.chol > 600)) {
+      errors.chol = 'Cholesterol must be between 100 and 600 mg/dl';
+      isValid = false;
+    }
+    
+    // Maximum heart rate validation
+    if (formData.thalach && (formData.thalach < 60 || formData.thalach > 220)) {
+      errors.thalach = 'Maximum heart rate must be between 60 and 220 bpm';
+      isValid = false;
+    }
+    
+    // ST depression validation
+    if (formData.oldpeak && (formData.oldpeak < 0 || formData.oldpeak > 10)) {
+      errors.oldpeak = 'ST depression must be between 0 and 10 mm';
+      isValid = false;
+    }
+    
+    setFormErrors(errors);
+    return isValid;
+  };
+
+  // Handle form submission for prediction
+  const handlePredictionSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast({
+        title: 'Form Validation Error',
+        description: 'Please fill all required fields correctly',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setIsPredicting(true);
+    
+    try {
+      // Call the prediction API
+      const response = await getEnsemblePrediction(formData);
+      
+      if (response && response.success) {
+        // Add to predictions
+        const newPrediction = {
+          id: `pred-${Date.now()}`,
+          date: new Date().toISOString(),
+          probability: response.data?.primary_prediction?.probability || 0,
+          probability_percent: response.data?.primary_prediction?.probability_percent || 
+                              (response.data?.primary_prediction?.probability * 100).toFixed(1),
+          risk_level: response.data?.primary_prediction?.risk_level || determineRiskLevel(0),
+          inputs: formData
+        };
+        
+        // Add to the prediction list
+        setPredictions([newPrediction, ...predictions]);
+        
+        // If user is logged in, save prediction
+        if (currentUser) {
+          try {
+            await savePrediction(currentUser.uid, {
+              user_id: currentUser.uid,
+              inputs: formData,
+              prediction: response.data?.primary_prediction?.prediction || 0,
+              probability: response.data?.primary_prediction?.probability || 0,
+              risk_level: response.data?.primary_prediction?.risk_level || determineRiskLevel(0),
+              model: response.data?.primary_prediction?.model || 'ensemble',
+              is_fallback: response.data?.is_fallback || false
+            });
+          } catch (saveError) {
+            console.error('Error saving prediction:', saveError);
+          }
+        }
+        
+        toast({
+          title: 'Prediction Complete',
+          description: `Your heart disease risk: ${response.data?.primary_prediction?.risk_level || 'Unknown'}`,
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        resetForm();
+        onClosePredictionModal();
+      } else {
+        throw new Error('Failed to get prediction results');
+      }
+    } catch (error) {
+      console.error('Prediction error:', error);
+      toast({
+        title: 'Prediction Failed',
+        description: 'Unable to complete your heart disease risk assessment. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsPredicting(false);
+    }
+  };
+
+  // Determine risk level based on probability
+  const determineRiskLevel = (probability) => {
+    const prob = parseFloat(probability);
+    if (prob < 0.3) return 'Low Risk';
+    if (prob < 0.7) return 'Moderate Risk';
+    return 'High Risk';
   };
 
   const handleDelete = async () => {
@@ -402,9 +617,44 @@ const PredictionHistory = () => {
 
   return (
     <Box p={4}>
-      <Flex align="center" mb={6}>
-        <Icon as={FaHistory} w={6} h={6} color={headingColor} mr={2} />
-        <Heading size="lg" color={headingColor}>Prediction History</Heading>
+      <Flex align="center" mb={6} justify="space-between">
+        <Flex align="center">
+          <Icon as={FaHistory} w={6} h={6} color={headingColor} mr={2} />
+          <Heading size="lg" color={headingColor}>Prediction History</Heading>
+        </Flex>
+        
+        <Flex gap={3}>
+          <Button 
+            colorScheme="blue" 
+            leftIcon={<FaCalculator />}
+            onClick={onOpenPredictionModal}
+            size="sm"
+          >
+            New Prediction
+          </Button>
+          
+          <Button 
+            leftIcon={<FaDownload />} 
+            colorScheme="teal" 
+            variant="outline"
+            onClick={exportToCSV}
+            size="sm"
+          >
+            Export History
+          </Button>
+          
+          {predictions.length > 0 && (
+            <Button 
+              leftIcon={<FaTrash />} 
+              colorScheme="red" 
+              variant="ghost"
+              onClick={onOpenClearModal}
+              size="sm"
+            >
+              Clear All
+            </Button>
+          )}
+        </Flex>
       </Flex>
 
       {loading ? (
@@ -417,6 +667,7 @@ const PredictionHistory = () => {
         <>
           {/* Risk Trend Chart */}
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+            {/* Rest of the component remains the same */}
             <Box p={4} borderWidth="1px" borderRadius="lg" borderColor={borderColor} bg={bgColor} 
                  boxShadow="sm" height={{ base: "auto", md: "400px" }} minHeight="350px">
               <Flex align="center" mb={4}>
@@ -715,6 +966,230 @@ const PredictionHistory = () => {
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onCloseClearModal}>Cancel</Button>
             <Button colorScheme="red" leftIcon={<FaTrash />} onClick={handleClearHistory}>Delete All</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* Prediction Form Modal */}
+      <Modal isOpen={isPredictionModalOpen} onClose={onClosePredictionModal} size="xl">
+        <ModalOverlay />
+        <ModalContent bg={bgColor} color={textColor}>
+          <ModalHeader>
+            <HStack>
+              <Icon as={FaHeartbeat} color="red.500" />
+              <Text>Quick Heart Disease Risk Assessment</Text>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          
+          <ModalBody>
+            <form onSubmit={handlePredictionSubmit}>
+              <Alert status="info" mb={4} borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <Text fontSize="sm">
+                    Fill out the form below to assess your heart disease risk. Required fields are marked with an asterisk (*).
+                  </Text>
+                </Box>
+              </Alert>
+              
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                {/* Age */}
+                <FormControl isRequired isInvalid={!!formErrors.age}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaChild} mr={2} color="blue.500" />
+                      Age *
+                    </Flex>
+                  </FormLabel>
+                  <NumberInput 
+                    min={20} 
+                    max={100} 
+                    value={formData.age} 
+                    onChange={(v) => handleNumberChange('age', v)}
+                  >
+                    <NumberInputField 
+                      name="age" 
+                      placeholder="Enter your age" 
+                      bg={fieldBg}
+                    />
+                  </NumberInput>
+                  <FormErrorMessage>{formErrors.age}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Sex */}
+                <FormControl isRequired isInvalid={!!formErrors.sex}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaVenusMars} mr={2} color="purple.500" />
+                      Sex *
+                    </Flex>
+                  </FormLabel>
+                  <RadioGroup 
+                    onChange={(v) => handleNumberChange('sex', v)} 
+                    value={formData.sex}
+                  >
+                    <HStack spacing={5} bg={fieldBg} p={2} borderRadius="md">
+                      <Radio value="1" colorScheme="blue">Male</Radio>
+                      <Radio value="0" colorScheme="pink">Female</Radio>
+                    </HStack>
+                  </RadioGroup>
+                  <FormErrorMessage>{formErrors.sex}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Chest Pain Type */}
+                <FormControl isRequired isInvalid={!!formErrors.cp}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaHeart} mr={2} color="red.500" />
+                      Chest Pain Type *
+                    </Flex>
+                  </FormLabel>
+                  <Select 
+                    name="cp" 
+                    placeholder="Select chest pain type" 
+                    value={formData.cp} 
+                    onChange={handleChange}
+                    bg={fieldBg}
+                  >
+                    <option value="0">Typical Angina</option>
+                    <option value="1">Atypical Angina</option>
+                    <option value="2">Non-anginal Pain</option>
+                    <option value="3">Asymptomatic</option>
+                  </Select>
+                  <FormErrorMessage>{formErrors.cp}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Blood Pressure */}
+                <FormControl isRequired isInvalid={!!formErrors.trestbps}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaTint} mr={2} color="red.500" />
+                      Resting Blood Pressure (mmHg) *
+                    </Flex>
+                  </FormLabel>
+                  <NumberInput 
+                    min={80} 
+                    max={200} 
+                    value={formData.trestbps} 
+                    onChange={(v) => handleNumberChange('trestbps', v)}
+                  >
+                    <NumberInputField 
+                      name="trestbps" 
+                      placeholder="Enter blood pressure" 
+                      bg={fieldBg}
+                    />
+                  </NumberInput>
+                  <FormErrorMessage>{formErrors.trestbps}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Cholesterol */}
+                <FormControl isRequired isInvalid={!!formErrors.chol}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaFlask} mr={2} color="orange.500" />
+                      Serum Cholesterol (mg/dl) *
+                    </Flex>
+                  </FormLabel>
+                  <NumberInput 
+                    min={100} 
+                    max={600} 
+                    value={formData.chol} 
+                    onChange={(v) => handleNumberChange('chol', v)}
+                  >
+                    <NumberInputField 
+                      name="chol" 
+                      placeholder="Enter cholesterol level" 
+                      bg={fieldBg}
+                    />
+                  </NumberInput>
+                  <FormErrorMessage>{formErrors.chol}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Max Heart Rate */}
+                <FormControl isRequired isInvalid={!!formErrors.thalach}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaHeartbeat} mr={2} color="red.500" />
+                      Maximum Heart Rate (bpm) *
+                    </Flex>
+                  </FormLabel>
+                  <NumberInput 
+                    min={60} 
+                    max={220} 
+                    value={formData.thalach} 
+                    onChange={(v) => handleNumberChange('thalach', v)}
+                  >
+                    <NumberInputField 
+                      name="thalach" 
+                      placeholder="Enter maximum heart rate" 
+                      bg={fieldBg}
+                    />
+                  </NumberInput>
+                  <FormErrorMessage>{formErrors.thalach}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Exercise Induced Angina */}
+                <FormControl isRequired isInvalid={!!formErrors.exang}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaRunning} mr={2} color="green.500" />
+                      Exercise Induced Angina *
+                    </Flex>
+                  </FormLabel>
+                  <RadioGroup 
+                    onChange={(v) => handleNumberChange('exang', v)} 
+                    value={formData.exang}
+                  >
+                    <HStack spacing={5} bg={fieldBg} p={2} borderRadius="md">
+                      <Radio value="1" colorScheme="red">Yes</Radio>
+                      <Radio value="0" colorScheme="green">No</Radio>
+                    </HStack>
+                  </RadioGroup>
+                  <FormErrorMessage>{formErrors.exang}</FormErrorMessage>
+                </FormControl>
+                
+                {/* Fasting Blood Sugar */}
+                <FormControl isInvalid={!!formErrors.fbs}>
+                  <FormLabel>
+                    <Flex align="center">
+                      <Icon as={FaCapsules} mr={2} color="blue.500" />
+                      Fasting Blood Sugar {'>'} 120 mg/dl
+                    </Flex>
+                  </FormLabel>
+                  <RadioGroup 
+                    onChange={(v) => handleNumberChange('fbs', v)} 
+                    value={formData.fbs}
+                  >
+                    <HStack spacing={5} bg={fieldBg} p={2} borderRadius="md">
+                      <Radio value="1" colorScheme="purple">Yes</Radio>
+                      <Radio value="0" colorScheme="green">No</Radio>
+                    </HStack>
+                  </RadioGroup>
+                  <FormErrorMessage>{formErrors.fbs}</FormErrorMessage>
+                </FormControl>
+              </SimpleGrid>
+              
+              <Text fontSize="xs" color="gray.500" mt={6} mb={2}>
+                <Icon as={FaInfoCircle} mr={1} />
+                This assessment is for informational purposes only. Always consult with healthcare professionals.
+              </Text>
+            </form>
+          </ModalBody>
+          
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onClosePredictionModal}>
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="blue" 
+              leftIcon={<FaHeartbeat />} 
+              onClick={handlePredictionSubmit}
+              isLoading={isPredicting}
+              loadingText="Calculating"
+            >
+              Calculate Risk
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

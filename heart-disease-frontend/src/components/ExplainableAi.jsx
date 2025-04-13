@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container, Heading, Text, Box, Tabs, TabList, TabPanels, TabPanel, Tab,
   VStack, Flex, Spacer, Icon, useColorModeValue, Button, SimpleGrid,
@@ -26,6 +26,7 @@ const ExplainableAi = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isChartReady, setIsChartReady] = useState(false);
+  const tabsRef = useRef(null);
   
   const { currentUser } = useAuth();
   
@@ -89,6 +90,47 @@ const ExplainableAi = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Add sample prediction data
+  const [predictionData, setPredictionData] = useState({
+    inputs: {
+      age: 55,
+      trestbps: 140, // resting blood pressure
+      chol: 220,      // cholesterol
+      thalach: 145,   // maximum heart rate
+      oldpeak: 1.2,   // ST depression
+      exang: 1,       // exercise-induced angina (1 = yes)
+      cp: 3,          // chest pain type (0-3)
+      // Add other inputs as needed
+    },
+    prediction: 0.75, // Sample prediction probability
+    risk_category: 'High'
+  });
+
+  const chartAnimationVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.8,
+        ease: "easeOut",
+        delay: 0.2
+      }
+    }
+  };
+
+  const listItemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: i => ({ 
+      opacity: 1, 
+      x: 0,
+      transition: { 
+        delay: i * 0.1,
+        duration: 0.5
+      }
+    })
+  };
+
   // Helper function to open modal with specific content
   const openExplanationModal = (title, content) => {
     setModalContent({
@@ -116,7 +158,7 @@ const ExplainableAi = () => {
         </Text>
       </MotionBox>
 
-      <Tabs variant="enclosed" colorScheme="blue" mb={8}>
+      <Tabs variant="enclosed" colorScheme="blue" mb={8} ref={tabsRef}>
         <TabList>
           <Tab>
             <Flex align="center">
@@ -168,9 +210,20 @@ const ExplainableAi = () => {
                 Longer bars indicate greater importance in the model's decision-making process.
               </Text>
               
-              <Box position="relative" height="400px" width="100%" mb={6}>
+              <MotionBox 
+                position="relative" 
+                height="400px" 
+                width="100%" 
+                mb={6}
+                display="block"
+                minHeight="400px"
+                overflow="hidden"
+                variants={chartAnimationVariants}
+                initial="hidden"
+                animate={isChartReady ? "visible" : "hidden"}
+              >
                 {isChartReady && (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300} aspect={1.5}>
+                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
                     <BarChart
                       data={featureImportanceData}
                       margin={{ top: 20, right: 30, left: 50, bottom: 100 }}
@@ -200,7 +253,7 @@ const ExplainableAi = () => {
                           color: textColor
                         }}
                       />
-                      <Bar dataKey="value" fill="#8884d8">
+                      <Bar dataKey="value" fill="#8884d8" animationDuration={1500} animationEasing="ease-out">
                         {featureImportanceData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
@@ -208,7 +261,7 @@ const ExplainableAi = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 )}
-              </Box>
+              </MotionBox>
               
               <Button 
                 leftIcon={<InfoIcon />} 
@@ -329,9 +382,20 @@ const ExplainableAi = () => {
                 Higher values indicate better performance on each metric.
               </Text>
               
-              <Box position="relative" height="400px" width="100%" mb={6}>
+              <MotionBox 
+                position="relative" 
+                height="400px" 
+                width="100%" 
+                mb={6}
+                display="block"
+                minHeight="400px"
+                overflow="hidden"
+                variants={chartAnimationVariants}
+                initial="hidden"
+                animate={isChartReady ? "visible" : "hidden"}
+              >
                 {isChartReady && (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300} aspect={1.5}>
+                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
                     <BarChart
                       data={modelPerformanceData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
@@ -352,13 +416,13 @@ const ExplainableAi = () => {
                         }}
                       />
                       <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
-                      <Bar dataKey="Ensemble" fill="#8884d8" name="Ensemble Model" />
-                      <Bar dataKey="Random Forest" fill="#82ca9d" name="Random Forest" />
-                      <Bar dataKey="Logistic Regression" fill="#ffc658" name="Logistic Regression" />
+                      <Bar dataKey="Ensemble" fill="#8884d8" name="Ensemble Model" animationDuration={1500} animationEasing="ease-out" />
+                      <Bar dataKey="Random Forest" fill="#82ca9d" name="Random Forest" animationDuration={1500} animationEasing="ease-out" />
+                      <Bar dataKey="Logistic Regression" fill="#ffc658" name="Logistic Regression" animationDuration={1500} animationEasing="ease-out" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
-              </Box>
+              </MotionBox>
               
               <Button 
                 leftIcon={<InfoIcon />} 
@@ -459,9 +523,20 @@ const ExplainableAi = () => {
                 would affect false positive and false negative rates.
               </Text>
               
-              <Box position="relative" height="400px" width="100%" mb={6}>
+              <MotionBox 
+                position="relative" 
+                height="400px" 
+                width="100%" 
+                mb={6}
+                display="block"
+                minHeight="400px"
+                overflow="hidden"
+                variants={chartAnimationVariants}
+                initial="hidden"
+                animate={isChartReady ? "visible" : "hidden"}
+              >
                 {isChartReady && (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300} aspect={1.5}>
+                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
                     <LineChart
                       data={riskThresholdData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
@@ -503,6 +578,8 @@ const ExplainableAi = () => {
                         activeDot={{ r: 8 }}
                         strokeWidth={2}
                         name="False Alarms"
+                        animationDuration={2000}
+                        animationEasing="ease-in-out"
                       />
                       <Line 
                         type="monotone" 
@@ -511,11 +588,13 @@ const ExplainableAi = () => {
                         activeDot={{ r: 8 }}
                         strokeWidth={2}
                         name="Missed Cases"
+                        animationDuration={2000}
+                        animationEasing="ease-in-out"
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
-              </Box>
+              </MotionBox>
               
               <Button 
                 leftIcon={<InfoIcon />} 
@@ -622,9 +701,20 @@ const ExplainableAi = () => {
                 The chart below shows the distribution of heart disease cases in the training data.
               </Text>
               
-              <Box position="relative" height="400px" width="100%" mb={6}>
+              <MotionBox 
+                position="relative" 
+                height="400px" 
+                width="100%" 
+                mb={6}
+                display="block"
+                minHeight="400px"
+                overflow="hidden"
+                variants={chartAnimationVariants}
+                initial="hidden"
+                animate={isChartReady ? "visible" : "hidden"}
+              >
                 {isChartReady && (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300} aspect={1.5}>
+                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
                     <PieChart>
                       <Pie
                         data={distributionData}
@@ -635,6 +725,8 @@ const ExplainableAi = () => {
                         outerRadius={120}
                         fill="#8884d8"
                         dataKey="value"
+                        animationDuration={1500}
+                        animationEasing="ease-out"
                       >
                         {distributionData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -652,7 +744,7 @@ const ExplainableAi = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-              </Box>
+              </MotionBox>
               
               <Button 
                 leftIcon={<InfoIcon />} 
@@ -744,7 +836,7 @@ const ExplainableAi = () => {
 
           {/* SHAP Explanations Panel */}
           <TabPanel>
-            <ShapExplanation />
+            <ShapExplanation predictionData={predictionData} />
           </TabPanel>
         </TabPanels>
       </Tabs>

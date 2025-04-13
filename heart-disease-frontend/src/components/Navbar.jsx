@@ -65,13 +65,13 @@ const Navbar = () => {
       public: true,
       tooltip: 'Check your heart disease risk'
     },
-    {
-      name: 'Risk Simulator',
-      icon: <FaRandom />, // Changed to FaRandom which is available in react-icons/fa
-      path: '/simulator',
-      public: false,
-      tooltip: 'Simulate how lifestyle changes affect your risk'
-    },
+    // {
+    //   name: 'Risk Simulator',
+    //   icon: <FaRandom />, // Changed to FaRandom which is available in react-icons/fa
+    //   path: '/simulator',
+    //   public: false,
+    //   tooltip: 'Simulate how lifestyle changes affect your risk'
+    // },
     {
       name: 'Model Comparison',
       icon: <FaChartLine />,

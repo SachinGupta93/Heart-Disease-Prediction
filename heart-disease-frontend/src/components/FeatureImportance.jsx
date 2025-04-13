@@ -99,18 +99,91 @@ const IconComponent = ({ icon: IconElement, size, ...props }) => {
   });
 };
 
+// Fallback data for when API fails
+const getFallbackData = (errorReason = "Using simulated feature importance data") => {
+  return [
+    { feature: "Chest Pain Pattern", featureKey: "cp", importance: 0.22, color: COLORS[0], 
+      description: featureDescriptions["cp"], action: featureActionRecommendations["cp"] },
+    { feature: "Blocked Vessels", featureKey: "ca", importance: 0.18, color: COLORS[1], 
+      description: featureDescriptions["ca"], action: featureActionRecommendations["ca"] },
+    { feature: "Blood Flow to Heart", featureKey: "thal", importance: 0.15, color: COLORS[2], 
+      description: featureDescriptions["thal"], action: featureActionRecommendations["thal"] },
+    { feature: "Heart Stress Level", featureKey: "oldpeak", importance: 0.10, color: COLORS[3], 
+      description: featureDescriptions["oldpeak"], action: featureActionRecommendations["oldpeak"] },
+    { feature: "Age", featureKey: "age", importance: 0.08, color: COLORS[4], 
+      description: featureDescriptions["age"], action: featureActionRecommendations["age"] },
+    { feature: "Max Heart Rate", featureKey: "thalach", importance: 0.07, color: COLORS[5], 
+      description: featureDescriptions["thalach"], action: featureActionRecommendations["thalach"] },
+    { feature: "Gender", featureKey: "sex", importance: 0.06, color: COLORS[6], 
+      description: featureDescriptions["sex"], action: featureActionRecommendations["sex"] },
+    { feature: "Chest Pain on Exertion", featureKey: "exang", importance: 0.05, color: COLORS[7], 
+      description: featureDescriptions["exang"], action: featureActionRecommendations["exang"] },
+    { feature: "Blood Pressure", featureKey: "trestbps", importance: 0.03, color: COLORS[8], 
+      description: featureDescriptions["trestbps"], action: featureActionRecommendations["trestbps"] },
+    { feature: "ST Segment Pattern", featureKey: "slope", importance: 0.03, color: COLORS[9], 
+      description: featureDescriptions["slope"], action: featureActionRecommendations["slope"] },
+    { feature: "Resting ECG", featureKey: "restecg", importance: 0.01, color: COLORS[10], 
+      description: featureDescriptions["restecg"], action: featureActionRecommendations["restecg"] },
+    { feature: "Cholesterol", featureKey: "chol", importance: 0.01, color: COLORS[11], 
+      description: featureDescriptions["chol"], action: featureActionRecommendations["chol"] },
+    { feature: "Blood Sugar Level", featureKey: "fbs", importance: 0.01, color: COLORS[12], 
+      description: featureDescriptions["fbs"], action: featureActionRecommendations["fbs"] }
+  ];
+};
+
+// Process feature data helper
+const processFeatureData = (importanceData) => {
+  try {
+    // Format data for your chart and add colors
+    const formattedData = Object.entries(importanceData)
+      .map(([feature, value], index) => ({
+        feature: featureNameMapping[feature] || feature,
+        featureKey: feature, // Store original key for descriptions
+        importance: typeof value === 'number' ? value : parseFloat(value) || 0,
+        color: COLORS[index % COLORS.length],
+        description: featureDescriptions[feature],
+        action: featureActionRecommendations[feature]
+      }))
+      .filter(item => !isNaN(item.importance)); // Filter out any NaN values
+    
+    // Sort by importance descending
+    formattedData.sort((a, b) => b.importance - a.importance);
+    
+    console.log("Formatted feature data:", formattedData);
+    
+    if (formattedData.length > 0) {
+      return { formattedData, error: null };
+    } else {
+      // If we have no valid data after processing, use fallback
+      console.warn("No valid feature data after processing, using fallback");
+      return { 
+        formattedData: getFallbackData(), 
+        error: "No valid feature data found" 
+      };
+    }
+  } catch (err) {
+    console.error("Error processing feature data:", err);
+    return { 
+      formattedData: getFallbackData(), 
+      error: "Error processing feature data" 
+    };
+  }
+};
+
 const FeatureImportance = () => {
-  // Always declare all hooks at the top level
+  // State declarations - ALL hooks need to be at the top level
   const [featureData, setFeatureData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isChartReady, setIsChartReady] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
-  const { isOpen: isActionsOpen, onToggle: toggleActions } = useDisclosure();
-  const chartContainerRef = useRef(null);
   const [hoveredFeature, setHoveredFeature] = useState(null);
+  const { isOpen: isActionsOpen, onToggle: toggleActions } = useDisclosure();
   
-  // Color mode values for responsive design
+  // Refs
+  const chartContainerRef = useRef(null);
+  
+  // Color mode values
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.200');
@@ -119,141 +192,71 @@ const FeatureImportance = () => {
   const barColor = useColorModeValue('#4299E1', '#63B3ED');
   const hoverColor = useColorModeValue('#2B6CB0', '#3182CE');
   
-  // Helper function for fallback data with customizable message - Define before useEffect
-  const useFallbackData = (errorReason = "Using simulated feature importance data") => {
-    const fallbackData = [
-      { feature: "Chest Pain Pattern", featureKey: "cp", importance: 0.22, color: COLORS[0], 
-        description: featureDescriptions["cp"], action: featureActionRecommendations["cp"] },
-      { feature: "Blocked Vessels", featureKey: "ca", importance: 0.18, color: COLORS[1], 
-        description: featureDescriptions["ca"], action: featureActionRecommendations["ca"] },
-      { feature: "Blood Flow to Heart", featureKey: "thal", importance: 0.15, color: COLORS[2], 
-        description: featureDescriptions["thal"], action: featureActionRecommendations["thal"] },
-      { feature: "Heart Stress Level", featureKey: "oldpeak", importance: 0.10, color: COLORS[3], 
-        description: featureDescriptions["oldpeak"], action: featureActionRecommendations["oldpeak"] },
-      { feature: "Age", featureKey: "age", importance: 0.08, color: COLORS[4], 
-        description: featureDescriptions["age"], action: featureActionRecommendations["age"] },
-      { feature: "Max Heart Rate", featureKey: "thalach", importance: 0.07, color: COLORS[5], 
-        description: featureDescriptions["thalach"], action: featureActionRecommendations["thalach"] },
-      { feature: "Gender", featureKey: "sex", importance: 0.06, color: COLORS[6], 
-        description: featureDescriptions["sex"], action: featureActionRecommendations["sex"] },
-      { feature: "Chest Pain on Exertion", featureKey: "exang", importance: 0.05, color: COLORS[7], 
-        description: featureDescriptions["exang"], action: featureActionRecommendations["exang"] },
-      { feature: "Blood Pressure", featureKey: "trestbps", importance: 0.03, color: COLORS[8], 
-        description: featureDescriptions["trestbps"], action: featureActionRecommendations["trestbps"] },
-      { feature: "ST Segment Pattern", featureKey: "slope", importance: 0.03, color: COLORS[9], 
-        description: featureDescriptions["slope"], action: featureActionRecommendations["slope"] },
-      { feature: "Resting ECG", featureKey: "restecg", importance: 0.01, color: COLORS[10], 
-        description: featureDescriptions["restecg"], action: featureActionRecommendations["restecg"] },
-      { feature: "Cholesterol", featureKey: "chol", importance: 0.01, color: COLORS[11], 
-        description: featureDescriptions["chol"], action: featureActionRecommendations["chol"] },
-      { feature: "Blood Sugar Level", featureKey: "fbs", importance: 0.01, color: COLORS[12], 
-        description: featureDescriptions["fbs"], action: featureActionRecommendations["fbs"] }
-    ];
-    
-    setFeatureData(fallbackData);
-    // Set a more user-friendly error message based on the reason
-    setError(errorReason);
-  };
-  
-  // Helper function to process feature data - Define before useEffect
-  const processFeatureData = (importanceData) => {
-    try {
-      // Format data for your chart and add colors
-      const formattedData = Object.entries(importanceData)
-        .map(([feature, value], index) => ({
-          feature: featureNameMapping[feature] || feature,
-          featureKey: feature, // Store original key for descriptions
-          importance: typeof value === 'number' ? value : parseFloat(value) || 0,
-          color: COLORS[index % COLORS.length],
-          description: featureDescriptions[feature],
-          action: featureActionRecommendations[feature]
-        }))
-        .filter(item => !isNaN(item.importance)); // Filter out any NaN values
-      
-      // Sort by importance descending
-      formattedData.sort((a, b) => b.importance - a.importance);
-      
-      console.log("Formatted feature data:", formattedData);
-      
-      if (formattedData.length > 0) {
-        setFeatureData(formattedData);
-        setError(null); // Clear any previous errors
-      } else {
-        // If we have no valid data after processing, use fallback
-        console.warn("No valid feature data after processing, using fallback");
-        useFallbackData();
-      }
-    } catch (err) {
-      console.error("Error processing feature data:", err);
-      useFallbackData();
-    }
-  };
-  
-  // Define loadFeatureImportance before useEffect
-  const loadFeatureImportance = async () => {
-    try {
-      const response = await getFeatureImportance();
-      console.log("Feature importance response:", response);
-      
-      // Check if we should immediately use fallback data
-      if (response?.useFallback) {
-        console.log("API indicated we should use fallback data:", response.error);
-        useFallbackData(response.error);
-        return;
-      }
-      
-      // Check if the response is properly structured and successful
-      if (response && response.success && response.data) {
-        let importanceData = {};
-        
-        // Try different possible response structures
-        if (response.data.feature_importance) {
-          importanceData = response.data.feature_importance;
-        } else if (response.data.features) {
-          importanceData = response.data.features;
-        } else if (response.data.importance) {
-          importanceData = response.data.importance;
-        } else {
-          // Check if data itself has the feature keys directly
-          const possibleFeatures = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 
-                                  'restecg', 'thalach', 'exang', 'oldpeak', 
-                                  'slope', 'ca', 'thal'];
-          
-          // If at least 3 expected feature keys exist directly in data, use it
-          const directFeatures = possibleFeatures.filter(f => response.data[f] !== undefined);
-          if (directFeatures.length >= 3) {
-            importanceData = {};
-            directFeatures.forEach(f => {
-              importanceData[f] = response.data[f];
-            });
-          }
-        }
-        
-        // Process the data if we found it in any format
-        if (Object.keys(importanceData).length > 0) {
-          processFeatureData(importanceData);
-          return;
-        }
-      }
-      
-      // If we reach here, we couldn't get valid data from the API
-      console.warn("API returned invalid format or failed. Using fallback data.");
-      useFallbackData("Could not parse data from API");
-      
-    } catch (error) {
-      console.error("Error loading feature importance:", error);
-      useFallbackData("Error connecting to API server");
-    }
-  };
-  
-  // Now define useEffect after all the functions it depends on
+  // Load feature importance data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await loadFeatureImportance();
-      } catch (err) {
-        console.error("Error in useEffect:", err);
-        useFallbackData("Error loading feature data");
+        setLoading(true);
+        
+        try {
+          const response = await getFeatureImportance();
+          console.log("Feature importance response:", response);
+          
+          // Check if we should immediately use fallback data
+          if (response?.useFallback) {
+            console.log("API indicated we should use fallback data:", response.error);
+            setFeatureData(getFallbackData());
+            setError(response.error || "Using simulated feature importance data");
+          } else if (response && response.success && response.data) {
+            let importanceData = {};
+            
+            // Try different possible response structures
+            if (response.data.feature_importance) {
+              importanceData = response.data.feature_importance;
+            } else if (response.data.features) {
+              importanceData = response.data.features;
+            } else if (response.data.importance) {
+              importanceData = response.data.importance;
+            } else {
+              // Check if data itself has the feature keys directly
+              const possibleFeatures = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 
+                                      'restecg', 'thalach', 'exang', 'oldpeak', 
+                                      'slope', 'ca', 'thal'];
+              
+              // If at least 3 expected feature keys exist directly in data, use it
+              const directFeatures = possibleFeatures.filter(f => response.data[f] !== undefined);
+              if (directFeatures.length >= 3) {
+                importanceData = {};
+                directFeatures.forEach(f => {
+                  importanceData[f] = response.data[f];
+                });
+              }
+            }
+            
+            // Process the data if we found it in any format
+            if (Object.keys(importanceData).length > 0) {
+              const { formattedData, error: processingError } = processFeatureData(importanceData);
+              setFeatureData(formattedData);
+              if (processingError) {
+                setError(processingError);
+              }
+            } else {
+              // If we couldn't extract data in any format, use fallback
+              console.warn("API returned data in an unrecognized format. Using fallback data.");
+              setFeatureData(getFallbackData());
+              setError("Could not parse data from API");
+            }
+          } else {
+            // If the response was invalid, use fallback
+            console.warn("API returned invalid response. Using fallback data.");
+            setFeatureData(getFallbackData());
+            setError("Invalid response from API");
+          }
+        } catch (apiError) {
+          console.error("Error loading feature importance:", apiError);
+          setFeatureData(getFallbackData());
+          setError("Error connecting to API server");
+        }
       } finally {
         setLoading(false);
         
@@ -267,8 +270,18 @@ const FeatureImportance = () => {
     fetchData();
   }, []);
   
+  // Handle bar click to show feature details
+  const handleBarClick = useCallback((data) => {
+    setSelectedFeature(data);
+  }, []);
+  
+  // Clear selected feature
+  const clearSelectedFeature = useCallback(() => {
+    setSelectedFeature(null);
+  }, []);
+
   // Custom tooltip component for BarChart
-  const CustomTooltip = ({ active, payload }) => {
+  const CustomTooltip = useCallback(({ active, payload }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       
@@ -296,17 +309,7 @@ const FeatureImportance = () => {
     }
     
     return null;
-  };
-  
-  // Handle bar click to show feature details
-  const handleBarClick = (data) => {
-    setSelectedFeature(data);
-  };
-  
-  // Clear selected feature
-  const clearSelectedFeature = () => {
-    setSelectedFeature(null);
-  };
+  }, [cardBg, borderColor, mutedTextColor]);
 
   // Loading state
   if (loading) {

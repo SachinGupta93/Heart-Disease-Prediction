@@ -29,6 +29,7 @@ import {
   Tooltip as ChakraTooltip, 
   IconButton, 
   Link,
+  Spacer
 } from '@chakra-ui/react';
 import { InfoIcon, RepeatIcon, ExternalLinkIcon, QuestionIcon } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
@@ -50,9 +51,21 @@ import {
   Tooltip,
 } from 'recharts';
 import { usePrediction } from '../contexts/PredictionContext';
-import { getModelComparison } from '../services/api.js';
+import { getModelComparison, getModelComparisonPrediction } from '../services/api.js';
 
 const MotionBox = motion(Box);
+
+// Standardized colors for all models
+const MODEL_COLORS = {
+  ensemble: '#3182CE',        // Blue
+  neural_network: '#E53E3E',  // Red
+  random_forest: '#38A169',   // Green
+  logistic_regression: '#DD6B20', // Orange
+  svm: '#805AD5'              // Purple
+};
+
+// Standard model order for consistent display
+const MODEL_DISPLAY_ORDER = ['ensemble', 'neural_network', 'random_forest', 'logistic_regression', 'svm'];
 
 const ModelComparison = () => {
   // State variables
@@ -75,34 +88,41 @@ const ModelComparison = () => {
 
   const toast = useToast();
 
-  // Model information with improved descriptions and colors
+  // Model information with improved descriptions
   const models = [
     {
       id: 'ensemble',
       name: 'Ensemble Model',
       description: 'Combines predictions from multiple models for improved accuracy and robustness.',
-      color: '#3182CE',
+      color: MODEL_COLORS.ensemble,
       longDescription: 'Ensemble methods combine multiple machine learning models to produce better predictive performance than could be obtained from any of the constituent models alone. For heart disease prediction, this approach minimizes the weaknesses of individual models.'
+    },
+    {
+      id: 'neural_network',
+      name: 'Neural Network',
+      description: 'Deep learning model that mimics human brain structure to identify complex patterns.',
+      color: MODEL_COLORS.neural_network,
+      longDescription: 'Neural Networks use interconnected layers of artificial neurons to process data. They excel at identifying complex, non-linear patterns in medical data that simpler models might miss.'
     },
     {
       id: 'random_forest',
       name: 'Random Forest',
       description: 'Builds multiple decision trees and merges their predictions for better accuracy.',
-      color: '#38A169',
+      color: MODEL_COLORS.random_forest,
       longDescription: 'Random Forest creates multiple decision trees during training and outputs the class that is the mode of the classes output by individual trees. This algorithm handles complex medical data well and is less prone to overfitting.'
     },
     {
       id: 'logistic_regression',
       name: 'Logistic Regression',
       description: 'Simple but interpretable model that estimates probabilities for binary classification.',
-      color: '#DD6B20',
+      color: MODEL_COLORS.logistic_regression,
       longDescription: 'Logistic Regression estimates the probability of a binary outcome using a logistic function. In heart disease prediction, it models the relationship between patient features and the probability of disease presence.'
     },
     {
       id: 'svm',
       name: 'Support Vector Machine',
       description: 'Finds the hyperplane that best separates patients with and without heart disease.',
-      color: '#805AD5',
+      color: MODEL_COLORS.svm,
       longDescription: 'Support Vector Machine (SVM) works by finding the hyperplane that maximizes the margin between heart disease classes. SVMs handle complex, non-linear relationships within healthcare data using specialized kernel functions.'
     }
   ];
@@ -121,9 +141,10 @@ const ModelComparison = () => {
             throw new Error('API returned HTML instead of JSON');
           }
           
-          // Use fallback metrics
+          // Comprehensive fallback metrics with all 5 models
           const fallbackMetrics = {
             ensemble: { accuracy: 0.89, precision: 0.90, recall: 0.88, f1: 0.89, roc_auc: 0.92 },
+            neural_network: { accuracy: 0.88, precision: 0.87, recall: 0.89, f1: 0.88, roc_auc: 0.91 },
             random_forest: { accuracy: 0.87, precision: 0.88, recall: 0.85, f1: 0.86, roc_auc: 0.90 },
             logistic_regression: { accuracy: 0.83, precision: 0.84, recall: 0.82, f1: 0.83, roc_auc: 0.86 },
             svm: { accuracy: 0.85, precision: 0.86, recall: 0.83, f1: 0.84, roc_auc: 0.88 }
@@ -171,9 +192,10 @@ const ModelComparison = () => {
         } catch (error) {
           console.error('API error:', error);
           
-          // Use fallback metrics for any error
+          // Use comprehensive fallback metrics
           const fallbackMetrics = {
             ensemble: { accuracy: 0.89, precision: 0.90, recall: 0.88, f1: 0.89, roc_auc: 0.92 },
+            neural_network: { accuracy: 0.88, precision: 0.87, recall: 0.89, f1: 0.88, roc_auc: 0.91 },
             random_forest: { accuracy: 0.87, precision: 0.88, recall: 0.85, f1: 0.86, roc_auc: 0.90 },
             logistic_regression: { accuracy: 0.83, precision: 0.84, recall: 0.82, f1: 0.83, roc_auc: 0.86 },
             svm: { accuracy: 0.85, precision: 0.86, recall: 0.83, f1: 0.84, roc_auc: 0.88 }
@@ -199,7 +221,7 @@ const ModelComparison = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Run model comparison
+  // Run model comparison with all models
   const runComparison = async () => {
     try {
       setLocalLoading(true);
@@ -232,48 +254,78 @@ const ModelComparison = () => {
         });
       }
       
-      // Create demo results instead of calling API
-      setTimeout(() => {
-        // Create sample model results
-        const demoResults = {
-          ensemble: {
-            model_name: 'Ensemble Model',
-            model_id: 'ensemble',
-            prediction: 1,
-            probability: 0.78,
-            probability_percent: '78.0',
-            color: '#3182CE'
-          },
-          random_forest: {
-            model_name: 'Random Forest',
-            model_id: 'random_forest',
-            prediction: 1,
-            probability: 0.75,
-            probability_percent: '75.0',
-            color: '#38A169'
-          },
-          logistic_regression: {
-            model_name: 'Logistic Regression',
-            model_id: 'logistic_regression',
-            prediction: 1,
-            probability: 0.68,
-            probability_percent: '68.0',
-            color: '#DD6B20'
-          },
-          svm: {
-            model_name: 'Support Vector Machine',
-            model_id: 'svm',
-            prediction: 0,
-            probability: 0.42,
-            probability_percent: '42.0',
-            color: '#805AD5'
-          }
-        };
+      // Call API to get model comparison predictions
+      try {
+        const response = await getModelComparisonPrediction(inputData);
         
-        // Set the model results
-        setModelResults(demoResults);
-        setLocalLoading(false);
-      }, 1500); // Simulate 1.5 second API delay
+        if (response && response.success) {
+          // Format data for our component
+          const formattedResults = {};
+          
+          // Process each model's data
+          Object.entries(response.data).forEach(([modelId, modelData]) => {
+            // Skip non-model entries
+            if (modelId === 'is_fallback' || modelId === 'majority_vote' || !modelData) return;
+            
+            // Find the model info to get color
+            const modelInfo = models.find(m => m.id === modelId);
+            
+            if (modelInfo) {
+              formattedResults[modelId] = {
+                model_name: modelData.model_name || modelInfo.name,
+                model_id: modelId,
+                prediction: modelData.prediction,
+                probability: modelData.probability,
+                probability_percent: modelData.probability_percent || (modelData.probability * 100).toFixed(1),
+                color: modelData.color || modelInfo.color,
+                risk_level: modelData.risk_level,
+                message: modelData.message,
+                specialties: modelData.specialties || getModelSpecialty(modelId)
+              };
+            }
+          });
+          
+          // Set the model results
+          setModelResults(formattedResults);
+          
+          // Show a warning if using fallback
+          if (response.is_fallback) {
+            toast({
+              title: 'Using estimated predictions',
+              description: 'Server did not respond. Using client-side estimates instead.',
+              status: 'warning',
+              duration: 4000,
+              isClosable: true,
+            });
+          }
+        } else {
+          // Handle API error
+          toast({
+            title: 'Error',
+            description: response?.error || 'Could not get model predictions',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+          
+          // Use fallback demo data
+          useFallbackDemoData();
+        }
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        toast({
+          title: 'Error',
+          description: 'Could not compare models. Using demo data.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        
+        // Use fallback demo data
+        useFallbackDemoData();
+      }
+      
+      setLocalLoading(false);
     } catch (error) {
       console.error('Error running model comparison:', error);
       toast({
@@ -287,6 +339,89 @@ const ModelComparison = () => {
     }
   };
   
+  // Helper function to get model specialty based on ID
+  const getModelSpecialty = (modelId) => {
+    switch(modelId) {
+      case 'ensemble':
+        return 'Combines multiple models for improved reliability and accuracy';
+      case 'neural_network':
+        return 'Identifies complex patterns in medical data through deep learning';
+      case 'random_forest':
+        return 'Handles complex feature interactions and non-linear patterns';
+      case 'logistic_regression':
+        return 'Clear feature importance and good with linearly separable data';
+      case 'svm':
+        return 'Handles high-dimensional data with complex boundaries';
+      default:
+        return '';
+    }
+  };
+  
+  // Fallback function to use demo data if API fails
+  const useFallbackDemoData = () => {
+    // Create comprehensive sample model results with all 5 models
+    const demoResults = {
+      ensemble: {
+        model_name: 'Ensemble Model',
+        model_id: 'ensemble',
+        prediction: 1,
+        probability: 0.78,
+        probability_percent: '78.0',
+        color: MODEL_COLORS.ensemble,
+        risk_level: 'High Risk',
+        message: 'High risk of heart disease detected. Consultation recommended.',
+        specialties: 'Combines multiple models for improved reliability and accuracy'
+      },
+      neural_network: {
+        model_name: 'Neural Network',
+        model_id: 'neural_network',
+        prediction: 1,
+        probability: 0.81,
+        probability_percent: '81.0',
+        color: MODEL_COLORS.neural_network,
+        risk_level: 'High Risk',
+        message: 'High risk of heart disease detected. Immediate consultation recommended.',
+        specialties: 'Identifies complex patterns in medical data through deep learning'
+      },
+      random_forest: {
+        model_name: 'Random Forest',
+        model_id: 'random_forest',
+        prediction: 1,
+        probability: 0.75,
+        probability_percent: '75.0',
+        color: MODEL_COLORS.random_forest,
+        risk_level: 'High Risk',
+        message: 'High risk of heart disease detected. Consultation recommended.',
+        specialties: 'Handles complex feature interactions and non-linear patterns'
+      },
+      logistic_regression: {
+        model_name: 'Logistic Regression',
+        model_id: 'logistic_regression',
+        prediction: 1,
+        probability: 0.68,
+        probability_percent: '68.0',
+        color: MODEL_COLORS.logistic_regression,
+        risk_level: 'Moderate Risk',
+        message: 'Moderate risk of heart disease detected. Consider lifestyle changes.',
+        specialties: 'Clear feature importance and good with linearly separable data'
+      },
+      svm: {
+        model_name: 'Support Vector Machine',
+        model_id: 'svm',
+        prediction: 0,
+        probability: 0.42,
+        probability_percent: '42.0',
+        color: MODEL_COLORS.svm,
+        risk_level: 'Moderate Risk',
+        message: 'Moderate risk of heart disease detected. Consider lifestyle changes.',
+        specialties: 'Handles high-dimensional data with complex boundaries'
+      }
+    };
+    
+    // Set the model results
+    setModelResults(demoResults);
+  };
+
   // Format metrics data for radar chart
   const metricsData = useMemo(() => {
     if (!modelMetrics) return [];
@@ -318,22 +453,30 @@ const ModelComparison = () => {
     });
   }, [modelMetrics, models]);
 
-  // Format results data for bar chart
+  // Format results data for bar chart with consistent order
   const resultsData = useMemo(() => {
     if (!modelResults || typeof modelResults !== 'object') {
       return [];
     }
     
-    return Object.values(modelResults).map(result => ({
-      model: result.model_name || 'Unknown',
-      probability: result.probability_percent 
-        ? parseFloat(result.probability_percent) 
-        : (result.probability ? parseFloat(result.probability) * 100 : 0),
-      color: result.color || 
-        models.find(m => m.name === result.model_name || m.id === result.model_id)?.color || 
-        '#cccccc',
-      prediction: typeof result.prediction === 'number' ? result.prediction : 0
-    }));
+    // Convert to array and sort based on defined order
+    return Object.values(modelResults)
+      .sort((a, b) => {
+        const indexA = MODEL_DISPLAY_ORDER.indexOf(a.model_id);
+        const indexB = MODEL_DISPLAY_ORDER.indexOf(b.model_id);
+        return indexA - indexB;
+      })
+      .map(result => ({
+        model: result.model_name || 'Unknown',
+        model_id: result.model_id,
+        probability: result.probability_percent 
+          ? parseFloat(result.probability_percent) 
+          : (result.probability ? parseFloat(result.probability) * 100 : 0),
+        color: result.color || 
+          models.find(m => m.id === result.model_id)?.color || 
+          '#cccccc',
+        prediction: typeof result.prediction === 'number' ? result.prediction : 0
+      }));
   }, [modelResults, models]);
 
   // Generate consensus analysis
@@ -404,18 +547,6 @@ const ModelComparison = () => {
       return null;
     }
   }, [modelResults]);
-
-  // Debug info in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Development-only debugging info:', {
-      modelMetrics,
-      loadingMetrics,
-      metricsError,
-      resultsData,
-      consensusAnalysis,
-      modelResults
-    });
-  }
 
   return (
     <Container maxW="container.xl" py={6}>
@@ -498,7 +629,7 @@ const ModelComparison = () => {
                         <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
                         <XAxis 
                           dataKey="model" 
-                          angle={-45} 
+                          angle={-30} 
                           textAnchor="end" 
                           height={80} 
                           tick={{ fontSize: 12 }}
@@ -508,10 +639,25 @@ const ModelComparison = () => {
                           domain={[0, 100]} 
                           tick={{ fill: textColor }}
                         />
-                        <Tooltip formatter={(value) => [`${value}%`, 'Risk Probability']} contentStyle={{ backgroundColor: cardBg }} />
-                        <Bar dataKey="probability" name="Risk Probability">
+                        <Tooltip 
+                          formatter={(value, name, props) => {
+                            return [`${value.toFixed(1)}%`, 'Risk Probability'];
+                          }} 
+                          contentStyle={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}
+                          labelStyle={{ fontWeight: 'bold', marginBottom: '5px' }}
+                        />
+                        <Bar 
+                          dataKey="probability" 
+                          name="Risk Probability"
+                          radius={[4, 4, 0, 0]}
+                        >
                           {resultsData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={entry.color} 
+                              stroke={entry.color}
+                              strokeWidth={1}
+                            />
                           ))}
                         </Bar>
                       </BarChart>
@@ -686,71 +832,81 @@ const ModelComparison = () => {
                             stroke={model.color}
                             fill={model.color}
                             fillOpacity={0.2}
+                            dot={true}
+                            activeDot={{ r: 4, strokeWidth: 2 }}
                           />
                         ))}
                         
-                        <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
+                        <Legend 
+                          formatter={(value) => <span style={{ color: textColor }}>{value}</span>} 
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          align="center"
+                          wrapperStyle={{ paddingTop: "10px" }}
+                        />
                         <RechartsTooltip 
                           formatter={(value) => [`${(value * 100).toFixed(1)}%`, 'Score']}
-                          contentStyle={{ backgroundColor: cardBg }}
+                          contentStyle={{ backgroundColor: cardBg, borderRadius: '4px', border: `1px solid ${borderColor}`, padding: '10px' }}
                         />
                       </RadarChart>
                     </ResponsiveContainer>
                   )}
                 </Box>
                 
-                {/* Model Explanations */}
+                {/* Model Explanations - sorted in display order */}
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  {models.map((model) => (
-                    <MotionBox
-                      key={model.id}
-                      p={4}
-                      borderWidth="1px"
-                      borderRadius="lg"
-                      borderColor={borderColor}
-                      bg={cardBg}
-                      boxShadow="sm"
-                      _hover={{ boxShadow: "md", borderColor: model.color }}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ 
-                        duration: 0.2, 
-                        delay: 0.1 * models.indexOf(model) 
-                      }}
-                    >
-                      <Heading size="sm" mb={2} color={model.color}>{model.name}</Heading>
-                      <Text fontSize="sm" mb={3}>{model.description}</Text>
-                      
-                      {modelMetrics && modelMetrics[model.id] && (
-                        <SimpleGrid columns={2} spacing={2} fontSize="sm">
-                          <Stat size="sm">
-                            <StatLabel>Accuracy</StatLabel>
-                            <StatNumber>
-                              {typeof modelMetrics[model.id].accuracy === 'number' 
-                                ? (modelMetrics[model.id].accuracy * 100).toFixed(1) 
-                                : 0}%
-                            </StatNumber>
-                          </Stat>
-                          
-                          <Stat size="sm">
-                            <StatLabel>F1 Score</StatLabel>
-                            <StatNumber>
-                              {typeof modelMetrics[model.id].f1 === 'number'
-                                ? modelMetrics[model.id].f1.toFixed(2)
-                                : '0.00'}
-                            </StatNumber>
-                          </Stat>
-                        </SimpleGrid>
-                      )}
-                      
-                      <ChakraTooltip label="Learn more about this model">
-                        <Link fontSize="xs" color="blue.500" mt={2} display="inline-block">
-                          <ExternalLinkIcon mr={1} boxSize={3} />
-                          Learn more
-                        </Link>
-                      </ChakraTooltip>
-                    </MotionBox>
-                  ))}
+                  {models
+                    .sort((a, b) => MODEL_DISPLAY_ORDER.indexOf(a.id) - MODEL_DISPLAY_ORDER.indexOf(b.id))
+                    .map((model) => (
+                      <MotionBox
+                        key={model.id}
+                        p={4}
+                        borderWidth="1px"
+                        borderRadius="lg"
+                        borderColor={borderColor}
+                        bg={cardBg}
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", borderColor: model.color }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ 
+                          duration: 0.2, 
+                          delay: 0.1 * MODEL_DISPLAY_ORDER.indexOf(model.id) 
+                        }}
+                      >
+                        <Heading size="sm" mb={2} color={model.color}>{model.name}</Heading>
+                        <Text fontSize="sm" mb={3}>{model.description}</Text>
+                        
+                        {modelMetrics && modelMetrics[model.id] && (
+                          <SimpleGrid columns={2} spacing={2} fontSize="sm">
+                            <Stat size="sm">
+                              <StatLabel>Accuracy</StatLabel>
+                              <StatNumber>
+                                {typeof modelMetrics[model.id].accuracy === 'number' 
+                                  ? (modelMetrics[model.id].accuracy * 100).toFixed(1) 
+                                  : 0}%
+                              </StatNumber>
+                            </Stat>
+                            
+                            <Stat size="sm">
+                              <StatLabel>F1 Score</StatLabel>
+                              <StatNumber>
+                                {typeof modelMetrics[model.id].f1 === 'number'
+                                  ? modelMetrics[model.id].f1.toFixed(2)
+                                  : '0.00'}
+                              </StatNumber>
+                            </Stat>
+                          </SimpleGrid>
+                        )}
+                        
+                        <ChakraTooltip label="Learn more about this model">
+                          <Link fontSize="xs" color="blue.500" mt={2} display="inline-block">
+                            <ExternalLinkIcon mr={1} boxSize={3} />
+                            Learn more
+                          </Link>
+                        </ChakraTooltip>
+                      </MotionBox>
+                    ))}
                 </SimpleGrid>
                 
                 {/* Metrics Explanation */}
@@ -790,6 +946,102 @@ const ModelComparison = () => {
           </Box>
         </MotionBox>
       </SimpleGrid>
+
+      {/* Detailed Model Analysis Section */}
+      {modelResults && Object.keys(modelResults).length > 0 && (
+        <MotionBox
+          mt={6}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Heading size="md" mb={4}>
+            Detailed Model Analysis
+          </Heading>
+          
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            {Object.values(modelResults)
+              .sort((a, b) => {
+                const indexA = MODEL_DISPLAY_ORDER.indexOf(a.model_id);
+                const indexB = MODEL_DISPLAY_ORDER.indexOf(b.model_id);
+                return indexA - indexB;
+              })
+              .map((result, index) => (
+                <MotionBox
+                  key={index}
+                  p={4}
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  borderColor={borderColor}
+                  bg={cardBg}
+                  boxShadow="sm"
+                  borderLeft="4px solid"
+                  borderLeftColor={result.color}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 * index, duration: 0.3 }}
+                >
+                  <HStack mb={2}>
+                    <Heading size="sm" color={result.color}>
+                      {result.model_name}
+                    </Heading>
+                    <Spacer />
+                    <Badge 
+                      colorScheme={result.prediction === 1 ? "red" : "green"} 
+                      fontSize="xs"
+                      px={2}
+                      py={1}
+                      borderRadius="full"
+                    >
+                      {result.prediction === 1 ? "Positive" : "Negative"}
+                    </Badge>
+                  </HStack>
+                  
+                  <Text mb={3} fontSize="sm">
+                    {result.message || 
+                      (result.prediction === 1 
+                        ? "This model has detected patterns associated with heart disease."
+                        : "This model has detected patterns suggesting absence of heart disease."
+                      )
+                    }
+                  </Text>
+                  
+                  <Divider mb={3} />
+                  
+                  <SimpleGrid columns={2} spacing={2} mb={3}>
+                    <Stat size="sm">
+                      <StatLabel fontSize="xs">Risk Probability</StatLabel>
+                      <StatNumber fontSize="md">
+                        {result.probability_percent || (result.probability * 100).toFixed(1)}%
+                      </StatNumber>
+                    </Stat>
+                    
+                    <Stat size="sm">
+                      <StatLabel fontSize="xs">Risk Level</StatLabel>
+                      <StatNumber fontSize="md">
+                        <Badge 
+                          colorScheme={
+                            result.risk_level?.includes("Low") ? "green" :
+                            result.risk_level?.includes("Moderate") ? "yellow" : "red"
+                          }
+                        >
+                          {result.risk_level || "Unknown"}
+                        </Badge>
+                      </StatNumber>
+                    </Stat>
+                  </SimpleGrid>
+                  
+                  {result.specialties && (
+                    <Box mt={2} fontSize="xs" color="gray.500" fontStyle="italic">
+                      <Text fontWeight="bold" mb={1}>Model Specialty:</Text>
+                      <Text>{result.specialties}</Text>
+                    </Box>
+                  )}
+                </MotionBox>
+              ))}
+          </SimpleGrid>
+        </MotionBox>
+      )}
     </Container>
   );
 };
