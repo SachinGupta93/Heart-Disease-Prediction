@@ -31,105 +31,102 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 
-// Keep AI_RESPONSES as fallback in case API fails
+// Shortened fallback responses
 const AI_RESPONSES = {
   // General app questions
-  'dashboard': 'The Dashboard shows an overview of your heart health data, recent predictions, and health tips.',
-  'predict': 'You can get a heart disease risk prediction by filling out the form in the Risk Assessment section with your health metrics.',
-  'assessment': 'The Risk Assessment feature analyzes your health data to estimate your heart disease risk.',
-  'simulator': 'The Risk Simulator allows you to see how changing different health factors might affect your heart disease risk.',
-  'history': 'Your Prediction History keeps track of all your previous risk assessments so you can monitor changes over time.',
-  'explain': 'The Explainable AI section helps you understand how the AI reached its prediction about your heart disease risk.',
-  'features': 'The Feature Importance section shows which health factors have the strongest influence on heart disease risk.',
-  'comparison': 'The Model Comparison page demonstrates how different AI models evaluate heart disease risk.',
-  'information': 'The Health Information section provides educational content about heart disease, prevention, and management.',
+  'dashboard': 'The Dashboard shows your heart health overview and recent predictions.',
+  'predict': 'Enter health metrics in Risk Assessment to get a heart disease risk prediction.',
+  'assessment': 'Risk Assessment uses your health data to estimate heart disease risk.',
+  'simulator': 'Risk Simulator shows how health changes affect your risk.',
+  'history': 'Prediction History tracks your past risk assessments.',
+  'explain': 'Explainable AI clarifies how predictions are made.',
+  'features': 'Feature Importance highlights key risk factors.',
+  'comparison': 'Model Comparison shows different AI model results.',
+  'information': 'Health Information offers heart disease prevention tips.',
   
-  // Heart disease information
-  'heart disease': 'Heart disease refers to various conditions that affect the heart, with coronary artery disease being the most common. Risk factors include high blood pressure, high cholesterol, smoking, obesity, and family history.',
-  'symptoms': 'Common heart disease symptoms include chest pain/pressure, shortness of breath, pain/numbness in limbs, and fatigue. Some people may not show symptoms until a heart attack occurs.',
-  'prevention': 'To prevent heart disease: maintain a healthy diet, exercise regularly, avoid smoking, limit alcohol, manage stress, and get regular check-ups to monitor blood pressure, cholesterol, and blood sugar.',
-  'risk factors': 'Major heart disease risk factors include age, sex, family history, smoking, high blood pressure, high cholesterol, diabetes, obesity, stress, and physical inactivity.',
+  // Heart disease info
+  'heart disease': 'Heart disease affects the heart, often due to plaque buildup. Risk factors include high BP and cholesterol.',
+  'symptoms': 'Symptoms include chest pain, shortness of breath, and fatigue. Some have no signs until a heart attack.',
+  'prevention': 'Prevent heart disease with a healthy diet, exercise, no smoking, and regular check-ups.',
+  'risk factors': 'Risk factors include age, sex, smoking, high BP, cholesterol, and diabetes.',
   
-  // Help with metrics
-  'cholesterol': 'Healthy total cholesterol levels are below 200 mg/dL. LDL (bad) cholesterol should be below 100 mg/dL, and HDL (good) cholesterol should be 60 mg/dL or higher.',
-  'blood pressure': 'Normal blood pressure is below 120/80 mmHg. Hypertension stage 1 is 130-139/80-89 mmHg, and stage 2 is 140/90 mmHg or higher.',
-  'bmi': 'Body Mass Index (BMI) measures body fat based on height and weight. A healthy BMI range is 18.5-24.9. BMI 25-29.9 is overweight, and 30+ is obese.',
-  'diabetes': 'Diabetes is a risk factor for heart disease. Normal fasting blood glucose is below 100 mg/dL. Prediabetes is 100-125 mg/dL, and diabetes is 126 mg/dL or higher.',
+  // Metrics
+  'cholesterol': 'Healthy cholesterol is <200 mg/dL. LDL <100, HDL ≥60.',
+  'blood pressure': 'Normal BP is <120/80 mmHg. ≥140/90 is high.',
+  'bmi': 'Healthy BMI is 18.5-24.9. ≥30 is obese.',
+  'diabetes': 'Fasting glucose ≥126 mg/dL indicates diabetes, a heart risk factor.',
   
-  // About the app
-  'about': 'This is a Heart Disease Prediction application that uses machine learning to estimate your risk of heart disease based on your health metrics. The app includes various features to help you understand your risk factors and make informed health decisions.',
-  'how it works': 'Our app uses machine learning models trained on medical data to predict heart disease risk. The models analyze your health metrics (like age, blood pressure, cholesterol) to calculate risk probability.',
-  'accuracy': 'Our heart disease prediction models achieve approximately 85-90% accuracy. However, please note that this is not a medical diagnosis - always consult healthcare professionals for medical advice.',
+  // About
+  'about': 'This app predicts heart disease risk using AI and health metrics.',
+  'how it works': 'AI analyzes health metrics to predict heart disease risk.',
+  'accuracy': 'Predictions are ~85% accurate. Consult a doctor for diagnosis.',
   
-  // Default responses
-  'hello': 'Hello! I\'m your Heart Health Assistant. How can I help you with heart disease information or using the application?',
-  'hi': 'Hi there! I\'m your Heart Health Assistant. Ask me about heart disease or how to use this application!',
-  'help': 'I can help with: understanding heart disease, explaining app features, interpreting risk factors, or providing health information. What would you like to know?',
-  'thanks': 'You\'re welcome! Feel free to ask if you have any other questions about heart health or using the application.',
-  'thank you': 'You\'re welcome! Feel free to ask if you have any other questions about heart health or using the application.',
+  // Greetings
+  'hello': 'Hi! I’m your Heart Health Assistant. Ask about heart disease or the app.',
+  'hi': 'Hey! Ask me about heart health or using the app.',
+  'help': 'I can explain heart disease, risk factors, or app features. What’s up?',
+  'thanks': 'You’re welcome! Ask anytime.',
+  'thank you': 'No prob! Happy to help.',
   
-  // Enhanced medical information
-  'coronary artery disease': 'Coronary artery disease (CAD) occurs when the arteries that supply blood to the heart muscle become hardened and narrowed due to plaque buildup. This can lead to chest pain (angina), shortness of breath, or a heart attack.',
-  'heart attack': 'A heart attack (myocardial infarction) occurs when blood flow to part of the heart is blocked, causing damage to heart muscle. Symptoms include chest pain/pressure, pain in arms/shoulders/jaw, shortness of breath, cold sweat, and nausea. This is a medical emergency - call emergency services immediately if you suspect a heart attack.',
-  'angina': 'Angina is chest pain or discomfort that occurs when your heart doesn\'t get enough oxygen-rich blood. It may feel like pressure, squeezing, or fullness in your chest. It\'s often a symptom of coronary artery disease.',
-  'arrhythmia': 'Arrhythmia refers to an irregular heartbeat - either too fast, too slow, or with an irregular rhythm. Many arrhythmias are harmless, but some can be serious or life-threatening.',
-  'heart failure': 'Heart failure occurs when the heart can\'t pump blood as well as it should. It doesn\'t mean your heart has stopped working, but that it needs support to work more efficiently. Symptoms include shortness of breath, fatigue, and swelling in legs/ankles.',
+  // Medical terms
+  'coronary artery disease': 'CAD is narrowed heart arteries, causing chest pain or heart attacks.',
+  'heart attack': 'A heart attack is blocked heart blood flow. Symptoms include chest pain, shortness of breath. Call emergency if suspected.',
+  'angina': 'Angina is chest pain from low heart blood flow, often tied to CAD.',
+  'arrhythmia': 'Arrhythmia is an irregular heartbeat, sometimes harmless, sometimes serious.',
+  'heart failure': 'Heart failure is when the heart pumps weakly, causing fatigue and swelling.',
   
   // Model explanations
-  'machine learning': 'Our application uses several machine learning models including Random Forest, Neural Networks, and ensemble methods to predict heart disease risk. These models were trained on medical datasets containing thousands of patient records with known outcomes.',
-  'models': 'We use multiple prediction models including Random Forest, Neural Networks, and ensemble methods. Our Model Comparison feature shows how different models may provide slightly different predictions based on the same data.',
-  'ensemble': 'Our ensemble model combines predictions from multiple machine learning algorithms to provide more accurate heart disease risk assessment than any single model alone.',
-  'neural network': 'The neural network model in our application mimics the human brain\'s structure to identify complex patterns in health data that may indicate heart disease risk.',
-  'random forest': 'The Random Forest model analyzes your health metrics by combining many decision trees, each evaluating different aspects of your data to predict heart disease risk.',
-  'shap': 'SHAP (SHapley Additive exPlanations) values help explain which factors most strongly influence your prediction. This helps you understand which health metrics are contributing most to your risk assessment.',
+  'machine learning': 'Our AI uses a Neural Network to predict heart disease risk from health data.',
+  'models': 'We use a Neural Network for predictions, trained on medical data.',
+  'neural network': 'The Neural Network finds patterns in health data to predict risk.',
+  'shap': 'SHAP shows which health factors most affect your risk prediction.',
   
-  // Lifestyle advice
-  'diet': 'A heart-healthy diet includes plenty of fruits, vegetables, whole grains, lean proteins, and healthy fats (like those in olive oil and avocados). Limit saturated fats, trans fats, sodium, red meat, sweets, and sugar-sweetened beverages.',
-  'exercise': 'For heart health, aim for at least 150 minutes of moderate-intensity exercise per week (like brisk walking) or 75 minutes of vigorous exercise (like running). Also include muscle-strengthening activities at least twice a week.',
-  'smoking': 'Smoking damages blood vessels, reduces oxygen in the blood, and makes the heart work harder. Quitting smoking is one of the best things you can do for heart health - risk of heart disease drops dramatically within just one year of quitting.',
-  'stress': 'Chronic stress may contribute to heart disease risk by raising blood pressure and leading to unhealthy coping behaviors. Stress management techniques include regular exercise, adequate sleep, meditation, deep breathing, and social connection.',
-  'alcohol': 'Excessive alcohol consumption can raise blood pressure and add calories to your diet. If you drink alcohol, do so in moderation - up to one drink per day for women and up to two drinks per day for men.',
-  'weight': 'Maintaining a healthy weight is important for heart health. Excess weight, especially around the waist, increases risk of high blood pressure, high cholesterol, and type 2 diabetes - all risk factors for heart disease.',
+  // Lifestyle
+  'diet': 'Eat fruits, veggies, whole grains, and lean proteins. Limit salt and sugar.',
+  'exercise': 'Aim for 150 min/week of moderate exercise like walking.',
+  'smoking': 'Quitting smoking cuts heart disease risk significantly.',
+  'stress': 'Manage stress with exercise, meditation, or relaxation techniques.',
+  'alcohol': 'Limit alcohol to 1 drink/day for women, 2 for men.',
+  'weight': 'Healthy weight lowers BP, cholesterol, and heart risk.',
   
-  // Project-specific responses
-  'thalach': 'Maximum heart rate (thalach) during exercise is an important indicator of cardiovascular health. A higher maximum heart rate is generally better, but extremely high rates can also indicate issues. The typical formula is 220 minus your age.',
-  'trestbps': 'Resting blood pressure (trestbps) is the pressure in your arteries when your heart is at rest. Normal range is below 120/80 mmHg. Higher values may indicate hypertension, a risk factor for heart disease.',
-  'oldpeak': 'ST depression (oldpeak) refers to how much the ST segment on an ECG is depressed during exercise compared to rest. Higher values may indicate ischemia, or insufficient blood flow to the heart muscle.',
-  'ca': 'The number of major vessels (ca) colored by fluoroscopy ranges from 0-3, with higher numbers indicating more severe coronary artery disease.',
-  'thal': 'Thalassemia (thal) is a blood disorder that affects how your body makes hemoglobin. In the context of heart disease prediction, different types of thalassemia can impact your risk assessment.',
-  'cp': 'Chest pain type (cp) is categorized as: 1 = typical angina, 2 = atypical angina, 3 = non-anginal pain, 4 = asymptomatic. Different types of chest pain indicate different levels of heart disease risk.',
-  'slope': 'The slope of the peak exercise ST segment can be: 1 = upsloping, 2 = flat, 3 = downsloping. This is measured during an exercise stress test and helps evaluate heart function.',
-  'exang': 'Exercise-induced angina (exang) means experiencing chest pain during physical activity, which can be a sign that your heart isn\'t getting enough oxygen during exertion.',
-  'fbs': 'Fasting blood sugar (fbs) above 120 mg/dl indicates potential diabetes, which is a significant risk factor for heart disease. Maintaining normal blood sugar levels is important for heart health.',
-  'restecg': 'Resting electrocardiographic results (restecg) show the electrical activity of your heart at rest. Abnormal readings may indicate existing heart damage or problems.',
-  'sex': 'In heart disease risk assessment, biological sex is a factor as men generally have a higher risk of heart disease than women, especially before menopause. After menopause, women\'s risk increases significantly.',
-  'age': 'Age is a significant risk factor for heart disease. Risk increases as you get older, particularly after age 45 for men and 55 for women.',
+  // Project-specific
+  'thalach': 'Max heart rate (thalach) shows heart fitness. Normal is ~220 minus age.',
+  'trestbps': 'Resting BP (trestbps) <120/80 mmHg is healthy.',
+  'oldpeak': 'ST depression (oldpeak) signals heart stress during exercise.',
+  'ca': 'Major vessels (ca) ≥1 indicates artery issues.',
+  'thal': 'Thalassemia (thal) affects heart risk via blood health.',
+  'cp': 'Chest pain (cp) types indicate varying heart risk levels.',
+  'slope': 'ST slope during exercise helps assess heart function.',
+  'exang': 'Exercise angina (exang) suggests heart oxygen issues.',
+  'fbs': 'Fasting blood sugar (fbs) >120 mg/dL raises heart risk.',
+  'restecg': 'Resting ECG (restecg) detects heart electrical issues.',
+  'sex': 'Men face higher heart risk than women before menopause.',
+  'age': 'Heart risk rises after age 45 (men) or 55 (women).',
   
   // App tips
-  'feature importance chart': 'The Feature Importance chart shows which health factors have the strongest influence on heart disease prediction. Factors at the top have more impact on your risk assessment.',
-  'shap values': 'SHAP values in the Explainable AI section show how each of your health metrics affects your prediction - red points push your risk higher, while blue points lower your risk.',
-  'risk factors chart': 'The Risk Factors chart shows how your values compare to typical ranges. Values outside the normal range may contribute to higher heart disease risk.',
-  'simulation': 'Use the Risk Simulator to see how changing different health metrics might affect your heart disease risk. This can help you set health improvement goals.',
-  'prediction history': 'Your Prediction History shows how your risk has changed over time. Regular improvements in your health metrics should reflect as a lower risk trend.',
-  'model comparison chart': 'The Model Comparison chart shows how different AI approaches assess your risk. When multiple models agree, it provides more confidence in the prediction.',
+  'feature importance chart': 'Feature Importance shows top risk factors.',
+  'shap values': 'SHAP values explain how metrics affect your risk.',
+  'risk factors chart': 'Risk Factors chart compares your metrics to norms.',
+  'simulation': 'Simulator shows how health changes impact risk.',
+  'prediction history': 'History tracks your risk trends.',
+  'model comparison chart': 'Model Comparison shows AI prediction agreement.',
   
-  // Default response when no matching keywords are found
-  'default': 'I\'m here to help with heart health questions and using this application. You can ask about heart disease, risk factors, app features, or interpreting your results. Try asking something like "What is heart disease?" or "How does the prediction work?"'
+  // Default
+  'default': 'I can help with heart health or app questions. Try “What is heart disease?” or “How does the app work?”'
 };
 
-// Suggested questions for the user
+// Suggested questions
 const SUGGESTED_QUESTIONS = [
   'What is heart disease?',
   'How does the prediction work?',
-  'What are the main risk factors?',
-  'How can I prevent heart disease?',
+  'What are risk factors?',
+  'How to prevent heart disease?',
   'What do my results mean?',
-  'What\'s a healthy cholesterol level?',
-  'How accurate is the prediction?',
-  'How do I use the simulator?'
+  'What’s healthy cholesterol?',
+  'How accurate is it?',
+  'How to use the simulator?'
 ];
 
-// Categories for quick navigation
 const QUESTION_CATEGORIES = [
   { 
     name: 'Heart Health', 
@@ -137,8 +134,8 @@ const QUESTION_CATEGORIES = [
     questions: [
       'What is heart disease?',
       'What are common symptoms?',
-      'How can I prevent heart disease?',
-      'What\'s a healthy blood pressure?'
+      'How to prevent heart disease?',
+      'What’s healthy blood pressure?'
     ]
   },
   { 
@@ -147,7 +144,7 @@ const QUESTION_CATEGORIES = [
     questions: [
       'How does the prediction work?',
       'How accurate is the prediction?',
-      'How do I use the simulator?',
+      'How to use the simulator?',
       'What features does the app have?'
     ]
   },
@@ -158,7 +155,7 @@ const QUESTION_CATEGORIES = [
       'What do my results mean?',
       'How is my risk calculated?',
       'What are SHAP values?',
-      'What should I do if I have high risk?'
+      'What if I have high risk?'
     ]
   }
 ];
@@ -189,18 +186,12 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
   
   // Expose functions via forwardRef
   useImperativeHandle(ref, () => ({
-    open: () => {
-      onOpen();
-    },
-    close: () => {
-      onClose();
-    },
-    addMessage: (text) => {
-      handleUserMessage(text);
-    }
+    open: onOpen,
+    close: onClose,
+    addMessage: (text) => handleUserMessage(text)
   }));
   
-  // Scroll to bottom when messages change
+  // Scroll to bottom
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -211,72 +202,76 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
     }
   };
   
-  // Function to get AI response from backend
+  // Truncate long responses
+  const truncateResponse = (text, maxWords = 100) => {
+    const words = text.split(' ');
+    if (words.length <= maxWords) return { text, truncated: false };
+    return {
+      text: words.slice(0, maxWords).join(' ') + '...',
+      truncated: true
+    };
+  };
+  
+  // Get AI response
   const getAIResponse = async (userInput, healthData) => {
     try {
       setLoading(true);
       
-      // Prepare the request data
       const requestData = {
         question: userInput,
         health_data: healthData || {}
       };
       
-      // Make API request to the dedicated AI assistant chat endpoint
       const response = await axios.post(`${API_URL}/assistant/chat`, requestData);
       
       if (response.data.success) {
         return response.data.data.response;
       } else {
-        // If API call fails, fall back to static responses
         console.error("API error:", response.data.message);
         return getFallbackResponse(userInput);
       }
     } catch (error) {
       console.error("Error getting AI response:", error);
-      // Fall back to static responses
       return getFallbackResponse(userInput);
     } finally {
       setLoading(false);
     }
   };
   
-  // Fallback function to search static AI_RESPONSES
+  // Fallback response
   const getFallbackResponse = (userInput) => {
-    // Create a lowercase version for comparison
     const lowercaseInput = userInput.toLowerCase();
-    
-    // Check for exact match in AI_RESPONSES
     if (AI_RESPONSES[lowercaseInput]) {
       return AI_RESPONSES[lowercaseInput];
     }
-    
-    // Search for partial matches in the input
     for (const key of Object.keys(AI_RESPONSES)) {
       if (lowercaseInput.includes(key)) {
         return AI_RESPONSES[key];
       }
     }
-    
-    // Return a default response if no matches
-    return "I'm not sure how to help with that specific question. You can ask me about heart disease, risk factors, prevention, or how to use this application.";
+    return AI_RESPONSES['default'];
   };
   
   const handleUserMessage = async (text) => {
-    // Add user message to chat
     setMessages([...messages, { sender: 'user', text }]);
-    
-    // Clear input field
     setInput('');
     
-    // Extract health data if available
     const healthData = userData || {};
-    
-    // Get AI response (now from backend API)
     const aiResponse = await getAIResponse(text, healthData);
     
-    // Add AI response to chat
-    setMessages(prevMessages => [...prevMessages, { sender: 'ai', text: aiResponse }]);
+    // Truncate if too long
+    const { text: truncatedText, truncated } = truncateResponse(aiResponse);
+    setMessages(prev => [...prev, { sender: 'ai', text: truncatedText, fullText: truncated ? aiResponse : null }]);
+    
+    if (truncated) {
+      toast({
+        title: "Response Truncated",
+        description: "The AI response was shortened. Click 'Read More' to see the full answer.",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
   
   const handleSendMessage = () => {
@@ -295,7 +290,13 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
     handleUserMessage(query);
   };
   
-  // Responsive width
+  // Handle Read More for truncated responses
+  const handleReadMore = (fullText, index) => {
+    setMessages(prev => prev.map((msg, i) => 
+      i === index ? { ...msg, text: fullText, fullText: null } : msg
+    ));
+  };
+  
   const drawerWidth = useBreakpointValue({ base: "100%", md: "400px" });
   
   return (
@@ -311,22 +312,20 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
         <DrawerCloseButton />
         <DrawerHeader borderBottomWidth="1px" bg={useColorModeValue('blue.500', 'blue.700')} color="white">
           <Flex align="center">
-            <FaRobot style={{ marginRight: '8px',marginBottom:'10px' }} />
+            <FaRobot style={{ marginRight: '8px', marginBottom:'10px' }} />
             <Text>Heart Health Assistant</Text>
           </Flex>
         </DrawerHeader>
 
         <DrawerBody p={0}>
           <VStack spacing={0} h="100%">
-            {/* Chat messages area */}
             <Box flex="1" width="100%" p={4} overflowY="auto" maxHeight="calc(100vh - 200px)">
               {messages.length === 0 ? (
                 <VStack spacing={4} align="center" justify="center" height="100%">
                   <Avatar icon={<FaRobot fontSize="1.5rem"/>} bg="blue.500" size="xl" />
                   <Text fontWeight="bold" fontSize="lg">Hello! I'm your Heart Health Assistant</Text>
-                  <Text textAlign="center">Ask me anything about heart health or how to use this app.</Text>
+                  <Text textAlign="center">Ask about heart health or the app.</Text>
                   
-                  {/* Suggested queries */}
                   <HStack spacing={2} mt={4} flexWrap="wrap" justifyContent="center">
                     {suggestedQueries.map((query, index) => (
                       <Tag 
@@ -367,6 +366,17 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
                         boxShadow="sm"
                       >
                         <Text>{message.text}</Text>
+                        {message.fullText && (
+                          <Button
+                            size="xs"
+                            variant="link"
+                            color="blue.500"
+                            mt={1}
+                            onClick={() => handleReadMore(message.fullText, index)}
+                          >
+                            Read More
+                          </Button>
+                        )}
                       </Box>
                     </Flex>
                   ))}
@@ -380,7 +390,7 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
                         maxWidth="80%"
                       >
                         <Spinner size="sm" color="blue.500" mr={2} />
-                        <Text as="span">Thinking...</Text>
+                        <Text as="span">Typing...</Text>
                       </Box>
                     </Flex>
                   )}
@@ -389,7 +399,6 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
               )}
             </Box>
             
-            {/* Input area */}
             <Box
               width="100%"
               p={4}
@@ -399,7 +408,7 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
             >
               <InputGroup size="md">
                 <Input
-                  placeholder="Type your question..."
+                  placeholder="Ask a question..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}

@@ -538,6 +538,12 @@ const RiskHistory = ({ currentPrediction }) => {
                       ref={lineChartRef}
                       {...chartAnimConfig}
                     >
+                      <defs>
+                        <linearGradient id="colorProbability" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3182CE" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#3182CE" stopOpacity={0.2}/>
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.7} stroke={borderColor} />
                       <XAxis 
                         dataKey="date" 
@@ -545,6 +551,8 @@ const RiskHistory = ({ currentPrediction }) => {
                         angle={-30}
                         textAnchor="end"
                         height={50}
+                        tickLine={{ stroke: borderColor }}
+                        axisLine={{ stroke: borderColor }}
                       />
                       <YAxis 
                         label={{ 
@@ -555,6 +563,8 @@ const RiskHistory = ({ currentPrediction }) => {
                         }}
                         domain={[0, 100]}
                         tick={{ fill: textColor }}
+                        tickLine={{ stroke: borderColor }}
+                        axisLine={{ stroke: borderColor }}
                       />
                       <RechartsTooltip 
                         formatter={(value) => [`${value}%`, 'Risk Probability']}
@@ -567,23 +577,47 @@ const RiskHistory = ({ currentPrediction }) => {
                         contentStyle={{ 
                           backgroundColor: bgColor,
                           borderColor: borderColor,
-                          color: textColor
+                          color: textColor,
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          padding: '10px'
                         }}
+                        cursor={{ stroke: headingColor, strokeWidth: 1, strokeDasharray: '5 5' }}
                       />
                       <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
+                      <Area
+                        type="monotone"
+                        dataKey="probability"
+                        name="Risk Area"
+                        stroke="none"
+                        fillOpacity={1}
+                        fill="url(#colorProbability)"
+                        isAnimationActive={true}
+                        animationDuration={1500}
+                        animationEasing="ease-out"
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="probability" 
                         name="Risk Probability"
                         stroke="#3182CE" 
-                        strokeWidth={2}
-                        activeDot={{ r: 8 }}
+                        strokeWidth={3}
+                        activeDot={{ 
+                          r: 8, 
+                          stroke: '#fff', 
+                          strokeWidth: 2,
+                          fill: (entry) => RISK_COLORS[entry.risk],
+                          boxShadow: '0 0 10px rgba(0,0,0,0.5)'
+                        }}
                         dot={{ 
                           fill: (entry) => RISK_COLORS[entry.risk], 
                           stroke: '#fff', 
                           strokeWidth: 2,
                           r: 5
                         }}
+                        isAnimationActive={true}
+                        animationDuration={2000}
+                        animationEasing="ease-in-out"
                       />
                     </LineChart>
                   </ResponsiveContainer>

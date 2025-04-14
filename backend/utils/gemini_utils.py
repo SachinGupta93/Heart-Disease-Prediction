@@ -37,14 +37,14 @@ def get_gemini_response(prompt, safety_settings=None):
         # Initialize the API if not done already
         initialize_gemini()
         
-        # Configure the model
+        # Configure the model for concise responses
         model = genai.GenerativeModel(
             model_name=GEMINI_MODEL,
             generation_config={
-                "temperature": GEMINI_CONFIG.get("temperature", 0.7),
+                "temperature": 0.5,  # Lower for focused answers
                 "top_k": GEMINI_CONFIG.get("top_k", 40),
-                "top_p": GEMINI_CONFIG.get("top_p", 0.95),
-                "max_output_tokens": GEMINI_CONFIG.get("max_output_tokens", 1024),
+                "top_p": 0.8,  # Slightly lower for less variability
+                "max_output_tokens": 150,  # Cap at ~150 tokens (~100-150 words)
             },
             safety_settings=safety_settings
         )
@@ -55,7 +55,7 @@ def get_gemini_response(prompt, safety_settings=None):
         # Extract and return the text response
         if response.text:
             logger.info("Successfully generated response from Gemini")
-            return response.text
+            return response.text.strip()
         else:
             logger.warning("Received empty response from Gemini")
             return "No response generated from the AI model."
@@ -75,33 +75,23 @@ def get_health_advice(health_data):
     Returns:
         str: Personalized health advice
     """
-    # Construct a prompt based on the health data
+    # Simplified prompt for concise advice
     prompt = f"""
-    I have the following health information for a patient:
+    Patient health data:
     - Age: {health_data.get('age', 'N/A')}
     - Sex: {'Male' if health_data.get('sex') == 1 else 'Female'}
-    - Chest Pain Type: {health_data.get('cp', 'N/A')}
-    - Resting Blood Pressure: {health_data.get('trestbps', 'N/A')} mm Hg
+    - Resting BP: {health_data.get('trestbps', 'N/A')} mm Hg
     - Cholesterol: {health_data.get('chol', 'N/A')} mg/dl
     - Fasting Blood Sugar > 120 mg/dl: {'Yes' if health_data.get('fbs') == 1 else 'No'}
-    - Resting ECG: {health_data.get('restecg', 'N/A')}
-    - Maximum Heart Rate: {health_data.get('thalach', 'N/A')}
-    - Exercise Induced Angina: {'Yes' if health_data.get('exang') == 1 else 'No'}
-    - ST Depression: {health_data.get('oldpeak', 'N/A')}
-    - Slope of Peak Exercise ST Segment: {health_data.get('slope', 'N/A')}
-    - Number of Major Vessels: {health_data.get('ca', 'N/A')}
-    - Thalassemia: {health_data.get('thal', 'N/A')}
-    
-    The prediction model indicates {'a high' if health_data.get('prediction') == 1 else 'a low'} risk 
-    of heart disease for this patient.
-    
-    Please provide:
-    1. A concise analysis of these health metrics
-    2. Personalized lifestyle and health recommendations
-    3. Potential warning signs they should be aware of
-    4. When they should consider consulting a healthcare professional
-    
-    Format the response in clear, patient-friendly language with bullet points where appropriate.
+    - Max Heart Rate: {health_data.get('thalach', 'N/A')}
+    - Exercise Angina: {'Yes' if health_data.get('exang') == 1 else 'No'}
+    - Prediction: {'High' if health_data.get('prediction') == 1 else 'Low'} risk of heart disease
+
+    Provide brief health advice:
+    - 1-2 key observations about the metrics
+    - 1-2 lifestyle tips
+    - When to see a doctor
+    Use short sentences and bullet points. Keep it under 100 words.
     """
     
     return get_gemini_response(prompt)
@@ -117,50 +107,46 @@ def answer_health_question(question, health_data=None):
     Returns:
         str: AI response to the question
     """
-    # Determine if health data is available to provide context
+    # Determine if health data is available
     has_health_data = health_data and any(health_data.values())
     
-    # Base context about the application
+    # Updated app context
     app_context = """
-You are an AI assistant for a Heart Disease Prediction system powered by a Multi-Layer Perceptron (MLP) Neural Network. The system predicts the likelihood of heart disease (binary outcome: 0 = no disease, 1 = disease) using the UCI Heart Disease dataset, which includes 13 clinical features: age, sex, chest pain type, resting blood pressure, cholesterol, fasting blood sugar, resting ECG, maximum heart rate, exercise-induced angina, ST depression, slope of peak exercise ST segment, number of major vessels, and thalassemia. The model is trained to capture complex, nonlinear patterns in these features to provide accurate risk assessments. Your role is to:
-- Answer questions about heart disease risk, the model’s predictions, or general heart health.
-- Use patient-friendly language and include disclaimers that users should consult healthcare professionals for medical advice.
-- Base responses on the provided health data (if any) and the model’s context.
-- Avoid referencing web app features, visualizations, or other machine learning models unless asked.
+You’re a medical AI assistant with expertise in all kinds of health topics—heart disease, diabetes, mental health, you name it. Give accurate, easy-to-understand answers, and always tell users to check with a doctor for personal advice.
 """
     
-    # Add health data context if available
+    # Health data context
     health_context = ""
     if has_health_data:
         health_context = f"""
-        The user has the following health information:
-        - Age: {health_data.get('age', 'N/A')}
-        - Sex: {'Male' if health_data.get('sex') == 1 else 'Female'}
-        - Chest Pain Type: {health_data.get('cp', 'N/A')}
-        - Resting Blood Pressure: {health_data.get('trestbps', 'N/A')} mm Hg
-        - Cholesterol: {health_data.get('chol', 'N/A')} mg/dl
-        - Fasting Blood Sugar > 120 mg/dl: {'Yes' if health_data.get('fbs') == 1 else 'No'}
-        - Resting ECG: {health_data.get('restecg', 'N/A')}
-        - Maximum Heart Rate: {health_data.get('thalach', 'N/A')}
-        - Exercise Induced Angina: {'Yes' if health_data.get('exang') == 1 else 'No'}
-        - ST Depression: {health_data.get('oldpeak', 'N/A')}
-        - Slope of Peak Exercise ST Segment: {health_data.get('slope', 'N/A')}
-        - Number of Major Vessels: {health_data.get('ca', 'N/A')}
-        - Thalassemia: {health_data.get('thal', 'N/A')}
-        - Current prediction: {'High' if health_data.get('prediction') == 1 else 'Low'} risk of heart disease
-        """
+User health data:
+- Age: {health_data.get('age', 'N/A')}
+- Sex: {'Male' if health_data.get('sex') == 1 else 'Female'}
+- Chest Pain Type: {health_data.get('cp', 'N/A')}
+- Resting BP: {health_data.get('trestbps', 'N/A')} mm Hg
+- Cholesterol: {health_data.get('chol', 'N/A')} mg/dl
+- Fasting Blood Sugar > 120 mg/dl: {'Yes' if health_data.get('fbs') == 1 else 'No'}
+- Resting ECG: {health_data.get('restecg', 'N/A')}
+- Max Heart Rate: {health_data.get('thalach', 'N/A')}
+- Exercise Angina: {'Yes' if health_data.get('exang') == 1 else 'No'}
+- ST Depression: {health_data.get('oldpeak', 'N/A')}
+- Slope: {health_data.get('slope', 'N/A')}
+- Major Vessels: {health_data.get('ca', 'N/A')}
+- Thalassemia: {health_data.get('thal', 'N/A')}
+- Prediction: {'High' if health_data.get('prediction') == 1 else 'Low'} risk
+"""
     else:
-        health_context = "No specific health data provided by the user."
+        health_context = "No user health data provided."
     
-    # Construct the prompt with the user's question
+    # Prompt with brevity emphasis
     prompt = f"""
-    {app_context}
+{app_context}
 
-    {health_context}
+{health_context}
 
-    The user asks: "{question}"
+User question: "{question}"
 
-    Provide a concise, accurate response strictly based on the system’s context and health data (if provided). Use simple, clear language suitable for non-experts. For medical questions, emphasize that the information is not a substitute for professional medical advice and recommend consulting a doctor when appropriate. Use bullet points for clarity where relevant.
-    """
-        
+Answer in 2-3 short sentences or a few bullet points (under 100 words). Use clear, non-expert language. For medical questions, note that users should consult a doctor for professional advice. Stay focused on the Neural Network model and provided data.
+"""
+    
     return get_gemini_response(prompt)

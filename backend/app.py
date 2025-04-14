@@ -44,9 +44,18 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
     return response
 
+# Calculate the correct model paths based on the module location
+current_dir = os.path.dirname(os.path.abspath(__file__))
+default_model_path = os.path.join(current_dir, 'model', 'heart_model.pkl')
+default_scaler_path = os.path.join(current_dir, 'model', 'scaler.pkl')
+
 # Model and scaler paths
-model_path = os.getenv('MODEL_PATH', './model/heart_model.pkl')
-scaler_path = os.getenv('SCALER_PATH', './model/scaler.pkl')
+model_path = os.getenv('MODEL_PATH', default_model_path)
+scaler_path = os.getenv('SCALER_PATH', default_scaler_path)
+
+# Log the actual paths being used
+logger.info(f"Looking for model at: {model_path}")
+logger.info(f"Looking for scaler at: {scaler_path}")
 
 # Initialize variables
 model = None
@@ -61,6 +70,15 @@ if os.path.exists(model_path):
         logger.error(f"Error loading model: {e}")
 else:
     logger.error(f"Model file not found at {model_path}")
+    # Try alternative path as fallback
+    alt_model_path = os.path.join(current_dir, 'model', 'ensemble_model.pkl')
+    logger.info(f"Trying fallback model path: {alt_model_path}")
+    if os.path.exists(alt_model_path):
+        try:
+            model = joblib.load(alt_model_path)
+            logger.info(f"Fallback model loaded successfully from {alt_model_path}")
+        except Exception as e:
+            logger.error(f"Error loading fallback model: {e}")
 
 if os.path.exists(scaler_path):
     try:
@@ -70,6 +88,15 @@ if os.path.exists(scaler_path):
         logger.error(f"Error loading scaler: {e}")
 else:
     logger.error(f"Scaler file not found at {scaler_path}")
+    # Try alternative path as fallback
+    alt_scaler_path = os.path.join(current_dir, 'model', 'scaler_nn.pkl')
+    logger.info(f"Trying fallback scaler path: {alt_scaler_path}")
+    if os.path.exists(alt_scaler_path):
+        try:
+            scaler = joblib.load(alt_scaler_path)
+            logger.info(f"Fallback scaler loaded successfully from {alt_scaler_path}")
+        except Exception as e:
+            logger.error(f"Error loading fallback scaler: {e}")
 
 # Feature names for the heart disease dataset
 feature_names = [
