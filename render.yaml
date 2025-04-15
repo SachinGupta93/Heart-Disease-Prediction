@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: heart-disease-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m backend.app
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: VITE_GEMINI_API_KEY
+        value: AIzaSyA9n7oHkGCHPmz1-pZNzNzhBQiQQ01J5WE
+      - key: MODEL_PATH
+        value: ./backend/model/heart_model.pkl
+      - key: SCALER_PATH
+        value: ./backend/model/scaler.pkl
+      - key: NN_MODEL_PATH
+        value: ./backend/model/nn_model.pkl
+      - key: NN_SCALER_PATH
+        value: ./backend/model/scaler_nn.pkl
+      - key: EXPLAINER_PATH
+        value: ./backend/model/shap_explainer.pkl
+      - key: DATASET_PATH
+        value: ./backend/dataset/heart.csv

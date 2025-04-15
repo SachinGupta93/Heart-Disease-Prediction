@@ -25,7 +25,12 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configure CORS properly to allow requests from your frontend
-CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"], "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", 
+                                         "http://127.0.0.1:3000", 
+                                         "https://heart-disease-prediction.netlify.app",  # Your Netlify domain - update this!
+                                         "https://*.netlify.app"],                       # Allow any Netlify subdomain
+                              "methods": ["GET", "POST", "OPTIONS"], 
+                              "allow_headers": ["Content-Type", "Authorization"]}})
 
 # Request timing middleware
 @app.before_request
