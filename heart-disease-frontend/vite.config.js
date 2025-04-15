@@ -15,24 +15,7 @@ const hasSSLCerts =
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: {
-    host: '0.0.0.0',  // Makes the server accessible from any device on the network
-    port: 3000,
-    // Only include HTTPS if certificates exist
-    ...(hasSSLCerts ? {
-      https: {
-        key: fs.readFileSync(sslKeyPath),
-        cert: fs.readFileSync(sslCertPath),
-      }
-    } : {}),
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:5000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
-  },
+
   // Build configuration for production
   build: {
     outDir: 'dist',

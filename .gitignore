@@ -52,6 +52,12 @@ var/
 .installed.cfg
 *.egg
 
+# Virtual Environment
+tf_env/
+
+# Instance (local database)
+instance/
+
 # Editor directories and files
 .idea/
 .vscode/
@@ -60,6 +66,8 @@ var/
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
 
 # OS generated files
 .DS_Store
@@ -73,3 +81,11 @@ Thumbs.db
 # Firebase
 .firebase/
 firebase-debug.log
+
+# Frontend build artifacts
+heart-disease-frontend/node_modules/
+heart-disease-frontend/.DS_Store
+heart-disease-frontend/.env.local
+heart-disease-frontend/.env.development.local
+heart-disease-frontend/.env.test.local
+heart-disease-frontend/.env.production.local
