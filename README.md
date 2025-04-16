@@ -26,6 +26,7 @@ This project is a comprehensive web application for heart disease risk predictio
 - **Framer Motion**: Animation library for enhanced user experience
 - **Axios**: HTTP client for making API requests
 - **Firebase**: Authentication and data storage
+- **Vite**: Fast, modern frontend build tool
 
 ### Backend
 - **Flask**: Python web framework for building the API
@@ -37,6 +38,7 @@ This project is a comprehensive web application for heart disease risk predictio
 - **Joblib**: Model serialization and persistence
 - **SQLite**: Lightweight database for storing user data and predictions
 - **Gemini API**: Google's generative AI for the AI assistant feature
+- **SHAP**: SHapley Additive exPlanations for model interpretability
 
 ## Project Structure
 
@@ -51,19 +53,20 @@ heart-disease-frontend/
 │   │   ├── RiskSimulator.jsx       # Interactive risk simulation tool
 │   │   ├── ExplainableAi.jsx       # Model explanation visualization
 │   │   ├── FeatureImportance.jsx   # Feature importance visualization
-│   │   ├── RiskHistory.jsx         # Risk history tracking
+│   │   ├── PredictionHistory.jsx   # Risk history tracking
 │   │   ├── ModelComparison.jsx     # Model comparison tool
 │   │   ├── HealthInformation.jsx   # Health education resources
 │   │   ├── AIAssistant.jsx         # AI-powered health assistant
 │   │   ├── Dashboard.jsx           # User dashboard
 │   │   └── Header.jsx              # Application header with navigation
 │   ├── contexts/                   # React context providers
+│   │   └── AuthContext.jsx         # Authentication context
 │   ├── pages/                      # Application pages
 │   ├── services/                   # API services
 │   │   └── api.js                  # Centralized API service
 │   ├── utils/                      # Utility functions
 │   ├── App.jsx                     # Main application component
-│   ├── index.js                    # Application entry point
+│   ├── main.jsx                    # Application entry point
 │   └── theme.js                    # Chakra UI theme customization
 ```
 
@@ -72,9 +75,14 @@ heart-disease-frontend/
 ```
 backend/
 ├── model/                          # Machine learning models
-│   ├── heart_model.pkl             # Trained machine learning model
-│   ├── neural_network_model.pkl    # Neural network model
-│   ├── scaler.pkl                  # Feature scaler
+│   ├── heart_model.pkl             # Random Forest model (primary)
+│   ├── ensemble_model.pkl          # Ensemble model combining multiple algorithms
+│   ├── lr_model.pkl                # Logistic Regression model
+│   ├── neural_network_model.pkl    # Neural network model architecture
+│   ├── nn_model.pkl                # Scikit-learn neural network implementation
+│   ├── svm_model.pkl               # Support Vector Machine model
+│   ├── scaler.pkl                  # Feature scaler for data normalization
+│   ├── scaler_nn.pkl               # Specific scaler for neural network
 │   └── shap_explainer.pkl          # SHAP explainer for model interpretability
 ├── dataset/                        # Dataset files
 │   └── heart.csv                   # UCI Heart Disease dataset
@@ -90,7 +98,8 @@ backend/
 ├── feature_importance.py          # Feature importance calculation
 ├── model_comparison.py            # Model comparison functionality
 ├── model_explainer.py             # SHAP-based model explainer
-├── neural_network_model_sklearn.py # Neural network implementation
+├── neural_network_model_sklearn.py # Neural network implementation with scikit-learn
+├── neural_network_model.py        # Neural network implementation with TensorFlow/Keras
 ├── train_models.py                # Model training script
 └── requirements.txt               # Python dependencies
 ```
@@ -178,28 +187,64 @@ backend/
 
 - `GET /`: API information and available endpoints
 - `POST /predict`: Make a heart disease prediction
-- `POST /predict/explain`: Get explanation for a prediction
 - `POST /predict/ensemble`: Get ensemble prediction from multiple models
-- `GET /history`: Get prediction history
+- `POST /predict/explain`: Get explanation for a prediction
+- `GET /explain`: Get SHAP-based detailed explanation
+- `GET /history/<user_id>`: Get prediction history for a user
 - `POST /history`: Save prediction to history
-- `DELETE /history/{id}`: Delete a prediction from history
+- `DELETE /history/<id>`: Delete a prediction from history
 - `GET /models/feature-importance`: Get feature importance data
 - `GET /models/comparison`: Get model comparison data
-- `GET /health-info`: Get health information and resources
-- `POST /ai-assistant`: Get personalized health recommendations from the AI assistant
+- `GET /models/comparison/predict`: Get predictions from multiple models
+- `GET /health/status`: Check API health status
+- `GET /health/info`: Get general health information and resources
+- `POST /health/advice`: Get personalized health advice
+- `POST /assistant/chat`: Interact with the AI health assistant
 
 ## Machine Learning Models
 
-The application uses an ensemble of machine learning models for heart disease prediction:
+The application uses multiple machine learning models for heart disease prediction, each with specific strengths:
 
-1. **Random Forest**: Primary model with high accuracy and feature importance capabilities
-2. **Neural Network**: Secondary model for ensemble predictions, implemented in two versions:
-   - Scikit-learn MLPClassifier version (stored as `nn_model.pkl`)
-   - TensorFlow/Keras implementation (stored as a TensorFlow SavedModel with reference in `neural_network_model.pkl`)
-3. **Logistic Regression**: Used for comparison purposes
-4. **Support Vector Machine**: Used for comparison purposes
+### 1. Random Forest (heart_model.pkl)
+- **Primary prediction model**
+- **Advantages**: High accuracy, robust to overfitting, provides feature importance
+- **Implementation**: Ensemble of decision trees trained with bagging
+- **Use case**: Primary model for general predictions with high reliability and interpretability
+- **Performance**: Excels at handling non-linear relationships and interactions between features
 
-The system is designed to work with either neural network implementation, prioritizing the scikit-learn version if available, and falling back to the TensorFlow version if needed.
+### 2. Neural Network (neural_network_model.pkl & nn_model.pkl)
+- **Implemented in two variations**:
+  - Scikit-learn MLPClassifier (nn_model.pkl): A feedforward neural network implementation
+  - TensorFlow/Keras implementation (neural_network_model.pkl): A deeper architecture with more flexibility
+- **Advantages**: Captures complex patterns and hidden relationships in medical data
+- **Use case**: Secondary model that excels with pattern recognition in complex health data
+- **Architecture**: Multi-layer perceptron with ReLU activation and adaptive learning rates
+
+### 3. Logistic Regression (lr_model.pkl)
+- **Baseline model for comparison**
+- **Advantages**: Highly interpretable, provides feature coefficients, fast training and prediction
+- **Implementation**: Linear model with logistic function
+- **Use case**: Provides baseline predictions and clear feature importance coefficients 
+- **Performance**: Works well with linearly separable data and gives probability estimates
+
+### 4. Support Vector Machine (svm_model.pkl)
+- **Supplementary model**
+- **Advantages**: Effective in high-dimensional spaces, robust against overfitting
+- **Implementation**: Radial Basis Function (RBF) kernel for non-linear classification
+- **Use case**: Provides alternative perspective especially useful for boundary cases
+- **Performance**: Strong generalization capability with proper parameter tuning
+
+### 5. Ensemble Model (ensemble_model.pkl)
+- **Meta-model that combines predictions from all other models**
+- **Implementation**: Weighted voting ensemble combining RandomForest, Neural Network, Logistic Regression and SVM
+- **Advantages**: Higher accuracy than individual models, more robust predictions
+- **Use case**: Final prediction model that leverages strengths of all individual models
+- **Performance**: Achieves the highest overall accuracy (90%) and AUC (0.94)
+
+### Model Processing
+- **Feature Scaling**: All models use standardized features (scaler.pkl and scaler_nn.pkl)
+- **Interpretability**: SHAP values provide individual prediction explanations (shap_explainer.pkl)
+- **Visualization**: Feature importance charts show global and local model interpretations
 
 ### Model Performance Metrics
 
@@ -218,16 +263,53 @@ The model is trained on the UCI Heart Disease dataset, which includes the follow
 - **age**: Age in years
 - **sex**: Sex (1 = male, 0 = female)
 - **cp**: Chest pain type (0-3)
-- **trestbps**: Resting blood pressure (mm Hg)
-- **chol**: Serum cholesterol (mg/dl)
+  - 0: Typical angina
+  - 1: Atypical angina
+  - 2: Non-anginal pain
+  - 3: Asymptomatic
+- **trestbps**: Resting blood pressure in mm Hg
+- **chol**: Serum cholesterol in mg/dl
 - **fbs**: Fasting blood sugar > 120 mg/dl (1 = true, 0 = false)
 - **restecg**: Resting electrocardiographic results (0-2)
+  - 0: Normal
+  - 1: ST-T wave abnormality
+  - 2: Left ventricular hypertrophy
 - **thalach**: Maximum heart rate achieved
 - **exang**: Exercise induced angina (1 = yes, 0 = no)
 - **oldpeak**: ST depression induced by exercise relative to rest
 - **slope**: Slope of the peak exercise ST segment (0-2)
+  - 0: Upsloping
+  - 1: Flat
+  - 2: Downsloping
 - **ca**: Number of major vessels colored by fluoroscopy (0-3)
-- **thal**: Thalassemia (0-3)
+- **thal**: Thalassemia (1-3)
+  - 1: Normal
+  - 2: Fixed defect
+  - 3: Reversible defect
+
+## Explainable AI Implementation
+
+Our application features a robust explainable AI component that helps users understand their heart disease risk predictions:
+
+1. **SHAP (SHapley Additive exPlanations) Values**: 
+   - Calculates the contribution of each feature to the prediction
+   - Shows both positive and negative influences on the risk score
+   - Visually represents feature importance for individual predictions
+
+2. **Feature Importance Visualization**:
+   - Global importance: Shows which features matter most across all predictions
+   - Local importance: Shows which features influenced a specific user's prediction
+   - Interactive charts allow users to explore different scenarios
+
+3. **Risk Simulation**:
+   - Users can adjust health parameters to see how changes might affect their risk
+   - Real-time prediction updates as parameters change
+   - Clear visualization of modifiable vs. non-modifiable risk factors
+
+4. **AI Health Assistant**:
+   - Leverages Google's Gemini API for natural language understanding
+   - Provides personalized explanations of prediction results
+   - Offers health recommendations based on specific risk factors
 
 ## How to Use the Application
 
@@ -236,14 +318,10 @@ The model is trained on the UCI Heart Disease dataset, which includes the follow
 3. **Risk Simulator**: Adjust sliders to see how changes in health metrics affect your risk.
 4. **Explainable AI**: View detailed explanations of how the model arrived at its prediction.
 5. **Feature Importance**: Discover which health factors have the greatest impact on heart disease risk.
-6. **Risk History**: Track how your heart disease risk changes over time.
+6. **Prediction History**: Track how your heart disease risk changes over time.
 7. **Model Comparison**: Compare predictions from different machine learning models.
 8. **Health Information**: Learn about heart disease risk factors, prevention strategies, and treatment options.
 9. **AI Assistant**: Ask questions and get personalized health recommendations from the AI assistant.
-
-## Demo
-
-Check out the live demo of the application: [Heart Disease Prediction App](https://your-app-url.com)
 
 ## Future Enhancements
 
@@ -255,14 +333,7 @@ Check out the live demo of the application: [Heart Disease Prediction App](https
 - Multi-language support
 - Additional machine learning models for improved predictions
 - Social sharing features for health progress
-
-## Contributors
-
-- Sachin Gupta
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Advanced time-series analysis for tracking health trends
 
 ## Acknowledgments
 
@@ -278,6 +349,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 2. Lundberg, S.M., & Lee, S.I. (2017). A unified approach to interpreting model predictions. Advances in Neural Information Processing Systems, 30, 4765-4774.
 3. World Health Organization. (2023). Cardiovascular diseases (CVDs). https://www.who.int/news-room/fact-sheets/detail/cardiovascular-diseases-(cvds)
 
-## Contact
 
-For questions or feedback, please reach out to guptasach8247@gmail.com

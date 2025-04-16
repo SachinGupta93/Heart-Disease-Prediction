@@ -179,9 +179,11 @@ const FeatureImportance = () => {
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const { isOpen: isActionsOpen, onToggle: toggleActions } = useDisclosure();
+  const [animationPercent, setAnimationPercent] = useState(0);
   
   // Refs
   const chartContainerRef = useRef(null);
+  const animationTimer = useRef(null);
   
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.700');
@@ -191,6 +193,8 @@ const FeatureImportance = () => {
   const featureCardBg = useColorModeValue('gray.50', 'gray.800');
   const barColor = useColorModeValue('#4299E1', '#63B3ED');
   const hoverColor = useColorModeValue('#2B6CB0', '#3182CE');
+  const skeletonColor = useColorModeValue('gray.100', 'gray.700');
+  const skeletonHighlight = useColorModeValue('gray.200', 'gray.600');
   
   // Load feature importance data
   useEffect(() => {
@@ -258,16 +262,40 @@ const FeatureImportance = () => {
           setError("Error connecting to API server");
         }
       } finally {
+        // Set loading to false
         setLoading(false);
         
-        // Set chart ready after a short delay to ensure proper rendering
+        // Start animation after a short delay
         setTimeout(() => {
           setIsChartReady(true);
+          
+          // Clear any existing animation
+          if (animationTimer.current) {
+            clearInterval(animationTimer.current);
+          }
+          
+          // Start progressive animation from 0 to 100%
+          let progress = 0;
+          animationTimer.current = setInterval(() => {
+            progress += 2;
+            setAnimationPercent(Math.min(progress, 100));
+            
+            if (progress >= 100) {
+              clearInterval(animationTimer.current);
+            }
+          }, 16); // ~60 fps
         }, 300);
       }
     };
     
     fetchData();
+    
+    // Cleanup animation timer
+    return () => {
+      if (animationTimer.current) {
+        clearInterval(animationTimer.current);
+      }
+    };
   }, []);
   
   // Handle bar click to show feature details
@@ -294,6 +322,13 @@ const FeatureImportance = () => {
           borderColor={borderColor}
           boxShadow="md"
           maxW="300px"
+          animation="fadeIn 0.2s ease-in-out"
+          sx={{
+            "@keyframes fadeIn": {
+              "0%": { opacity: 0, transform: "translateY(10px)" },
+              "100%": { opacity: 1, transform: "translateY(0)" }
+            }
+          }}
         >
           <Text fontWeight="bold" color={data.color}>{data.feature}</Text>
           <Text fontSize="sm" mt={1}>Importance: {(data.importance * 100).toFixed(1)}%</Text>
@@ -311,15 +346,136 @@ const FeatureImportance = () => {
     return null;
   }, [cardBg, borderColor, mutedTextColor]);
 
-  // Loading state
+  // Loading skeleton for chart
+  const ChartSkeleton = () => (
+    <Box height={{ base: "400px", md: "500px", lg: "600px" }} width="100%" position="relative">
+      {/* Y-Axis Labels Skeleton */}
+      <VStack 
+        position="absolute"
+        left={0}
+        top={20}
+        height="calc(100% - 40px)"
+        width="120px"
+        alignItems="flex-start"
+        justifyContent="space-between"
+        p={2}
+        spacing={0}
+      >
+        {Array(10).fill(0).map((_, i) => (
+          <Box 
+            key={i}
+            width={`${70 + Math.random() * 30}px`} 
+            height="10px" 
+            bg={skeletonColor}
+            borderRadius="md"
+            sx={{ 
+              animation: "pulse 1.5s infinite",
+              "@keyframes pulse": {
+                "0%, 100%": { opacity: 1 },
+                "50%": { opacity: 0.5 },
+              }
+            }}
+          />
+        ))}
+      </VStack>
+      
+      {/* Bars Skeleton */}
+      <VStack 
+        position="absolute"
+        left="120px"
+        top={20}
+        height="calc(100% - 40px)"
+        width="calc(100% - 120px)"
+        alignItems="flex-start"
+        justifyContent="space-between"
+        p={2}
+        spacing={0}
+      >
+        {Array(10).fill(0).map((_, i) => (
+          <Box 
+            key={i}
+            width={`${25 + Math.random() * 50}%`} 
+            height="16px" 
+            bg={skeletonColor}
+            borderRadius="md"
+            sx={{ 
+              animation: "shimmer 2s infinite",
+              background: `linear-gradient(90deg, ${skeletonColor} 0%, ${skeletonHighlight} 50%, ${skeletonColor} 100%)`,
+              backgroundSize: "200% 100%",
+              "@keyframes shimmer": {
+                "0%": { backgroundPosition: "200% 0" },
+                "100%": { backgroundPosition: "-200% 0" }
+              }
+            }}
+          />
+        ))}
+      </VStack>
+      
+      {/* X-Axis Skeleton */}
+      <Box 
+        position="absolute"
+        left="120px"
+        bottom={0}
+        height="20px"
+        width="calc(100% - 120px)"
+        bg={skeletonColor}
+        sx={{ 
+          animation: "pulse 1.5s infinite",
+          "@keyframes pulse": {
+            "0%, 100%": { opacity: 1 },
+            "50%": { opacity: 0.5 },
+          }
+        }}
+      />
+    </Box>
+  );
+
+  // Loading state with skeleton
   if (loading) {
     return (
-      <Box textAlign="center" py={10}>
-        <Spinner size="xl" thickness="4px" speed="0.65s" color="blue.500" />
-        <Text mt={4} fontWeight="medium">Loading health factors data...</Text>
+      <Box>
+        <Card boxShadow="md" borderRadius="lg" bg={cardBg}>
+          <CardHeader>
+            <Flex align="center" wrap="wrap">
+              <Box mb={{ base: 2, md: 0 }} width={{ base: "100%", md: "auto" }}>
+                <Heading size="md" display="flex" alignItems="center">
+                  <Icon as={FaHeartbeat} color="heartRed.500" mr={2} />
+                  Health Factors Influencing Your Heart
+                </Heading>
+                <Text color={mutedTextColor} fontSize="sm" mt={1}>
+                  Understanding which factors have the most impact on heart disease risk
+                </Text>
+              </Box>
+              <Spacer />
+              <IconButton
+                icon={<InfoIcon />}
+                aria-label="More information"
+                size="sm"
+                variant="ghost"
+                colorScheme="blue"
+              />
+            </Flex>
+          </CardHeader>
+          
+          <CardBody>
+            <VStack spacing={6} align="stretch">
+              <Box textAlign="center" py={2}>
+                <Text fontSize="sm" color={mutedTextColor}>Analyzing your health factors...</Text>
+              </Box>
+              
+              <ChartSkeleton />
+            </VStack>
+          </CardBody>
+        </Card>
       </Box>
     );
   }
+
+  // Calculate animated data for smooth entry
+  const animatedData = featureData.map(item => ({
+    ...item,
+    animatedImportance: (item.importance * (animationPercent / 100))
+  }));
 
   // Render the main component
   return (
@@ -357,7 +513,15 @@ const FeatureImportance = () => {
           <VStack spacing={6} align="stretch">
             {/* Show info alert when using fallback data */}
             {error && (
-              <Alert status="info" mb={3} borderRadius="md">
+              <Alert status="info" mb={3} borderRadius="md"
+                animation="fadeIn 0.5s ease-in-out"
+                sx={{
+                  "@keyframes fadeIn": {
+                    "0%": { opacity: 0, transform: "translateY(-10px)" },
+                    "100%": { opacity: 1, transform: "translateY(0)" }
+                  }
+                }}
+              >
                 <AlertIcon />
                 <Box>
                   <Text fontWeight="medium">{error}</Text>
@@ -378,6 +542,13 @@ const FeatureImportance = () => {
                 bg={featureCardBg}
                 position="relative"
                 mb={4}
+                animation="slideDown 0.3s ease-in-out"
+                sx={{
+                  "@keyframes slideDown": {
+                    "0%": { opacity: 0, transform: "translateY(-20px)" },
+                    "100%": { opacity: 1, transform: "translateY(0)" }
+                  }
+                }}
               >
                 <IconButton
                   icon={<ChevronUpIcon />}
@@ -421,12 +592,17 @@ const FeatureImportance = () => {
               width="100%"
               overflow="hidden"
               ref={chartContainerRef}
+              sx={{
+                ".recharts-bar-rectangle": {
+                  transition: "all 0.4s ease-in-out"
+                }
+              }}
             >
               {isChartReady && featureData.length > 0 && (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     layout="vertical"
-                    data={featureData}
+                    data={animatedData}
                     margin={{ top: 20, right: 30, left: 120, bottom: 5 }}
                     onClick={(data) => data && data.activePayload && handleBarClick(data.activePayload[0].payload)}
                   >
@@ -436,24 +612,33 @@ const FeatureImportance = () => {
                       domain={[0, 0.25]} 
                       tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
                       tick={{ fill: textColor }}
+                      animationDuration={1000}
                     />
                     <YAxis 
                       type="category" 
                       dataKey="feature" 
                       width={120}
                       tick={{ fill: textColor }}
+                      animationDuration={1000}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: useColorModeValue('rgba(0,0,0,0.05)', 'rgba(255,255,255,0.05)') }} />
                     <Bar 
-                      dataKey="importance" 
+                      dataKey="animatedImportance" 
                       name="Importance"
                       cursor="pointer"
+                      animationDuration={1000}
+                      animationEasing="ease-in-out"
                     >
-                      {featureData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.feature === hoveredFeature ? hoverColor : entry.color} onMouseEnter={() => setHoveredFeature(entry.feature)} onMouseLeave={() => setHoveredFeature(null)} />
+                      {animatedData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.feature === hoveredFeature ? hoverColor : entry.color} 
+                          onMouseEnter={() => setHoveredFeature(entry.feature)} 
+                          onMouseLeave={() => setHoveredFeature(null)}
+                        />
                       ))}
                       <LabelList 
-                        dataKey="importance" 
+                        dataKey="animatedImportance" 
                         position="right" 
                         formatter={(value) => `${(value * 100).toFixed(1)}%`}
                         fill={textColor}
@@ -464,6 +649,7 @@ const FeatureImportance = () => {
               )}
             </Box>
             
+            {/* Rest of the component remains the same */}
             <Box textAlign="center">
               <Text fontSize="sm" color={mutedTextColor} mb={2}>
                 Click on any bar in the chart for more information and health recommendations

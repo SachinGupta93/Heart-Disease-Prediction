@@ -48,14 +48,14 @@ const PredictionHistory = () => {
     cp: '',
     trestbps: '',
     chol: '',
+    fbs: '0',  // Default to 0 (false)
+    restecg: '0', // Default to 0 (normal)
     thalach: '',
     exang: '',
-    fbs: '',
-    restecg: '',
-    oldpeak: '',
-    slope: '',
-    ca: '',
-    thal: ''
+    oldpeak: '0.0', // Default to 0
+    slope: '0',  // Default to 0 (upsloping)
+    ca: '0',     // Default to 0 (no vessels)
+    thal: '1'    // Default to 1 (normal)
   });
   const [formErrors, setFormErrors] = useState({});
   const [isPredicting, setIsPredicting] = useState(false);

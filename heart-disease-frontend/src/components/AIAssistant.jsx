@@ -4,7 +4,6 @@ import {
   Button, 
   Drawer, 
   DrawerBody, 
-  DrawerFooter, 
   DrawerHeader, 
   DrawerOverlay, 
   DrawerContent, 
@@ -21,202 +20,157 @@ import {
   useColorModeValue,
   useDisclosure,
   Tag,
-  Tooltip,
   useBreakpointValue,
   Spinner,
-  useToast
+  useToast,
+  Image,
+  Badge,
+  Heading,
+  Center
 } from '@chakra-ui/react';
-import { FaRobot, FaPaperPlane, FaUser, FaHeartbeat, FaInfoCircle, FaTools, FaQuestionCircle } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { FaRobot, FaPaperPlane, FaHeartbeat, FaInfoCircle, FaMicrophone, FaStop } from 'react-icons/fa';
+import { BsQuestionCircle, BsTools, BsHeartPulseFill, BsListCheck } from 'react-icons/bs';
 import axios from 'axios';
 import { API_URL } from '../config';
 
-// Shortened fallback responses
-const AI_RESPONSES = {
-  // General app questions
-  'dashboard': 'The Dashboard shows your heart health overview and recent predictions.',
-  'predict': 'Enter health metrics in Risk Assessment to get a heart disease risk prediction.',
-  'assessment': 'Risk Assessment uses your health data to estimate heart disease risk.',
-  'simulator': 'Risk Simulator shows how health changes affect your risk.',
-  'history': 'Prediction History tracks your past risk assessments.',
-  'explain': 'Explainable AI clarifies how predictions are made.',
-  'features': 'Feature Importance highlights key risk factors.',
-  'comparison': 'Model Comparison shows different AI model results.',
-  'information': 'Health Information offers heart disease prevention tips.',
-  
-  // Heart disease info
-  'heart disease': 'Heart disease affects the heart, often due to plaque buildup. Risk factors include high BP and cholesterol.',
-  'symptoms': 'Symptoms include chest pain, shortness of breath, and fatigue. Some have no signs until a heart attack.',
-  'prevention': 'Prevent heart disease with a healthy diet, exercise, no smoking, and regular check-ups.',
-  'risk factors': 'Risk factors include age, sex, smoking, high BP, cholesterol, and diabetes.',
-  
-  // Metrics
-  'cholesterol': 'Healthy cholesterol is <200 mg/dL. LDL <100, HDL ≥60.',
-  'blood pressure': 'Normal BP is <120/80 mmHg. ≥140/90 is high.',
-  'bmi': 'Healthy BMI is 18.5-24.9. ≥30 is obese.',
-  'diabetes': 'Fasting glucose ≥126 mg/dL indicates diabetes, a heart risk factor.',
-  
-  // About
-  'about': 'This app predicts heart disease risk using AI and health metrics.',
-  'how it works': 'AI analyzes health metrics to predict heart disease risk.',
-  'accuracy': 'Predictions are ~85% accurate. Consult a doctor for diagnosis.',
-  
-  // Greetings
-  'hello': 'Hi! I’m your Heart Health Assistant. Ask about heart disease or the app.',
-  'hi': 'Hey! Ask me about heart health or using the app.',
-  'help': 'I can explain heart disease, risk factors, or app features. What’s up?',
-  'thanks': 'You’re welcome! Ask anytime.',
-  'thank you': 'No prob! Happy to help.',
-  
-  // Medical terms
-  'coronary artery disease': 'CAD is narrowed heart arteries, causing chest pain or heart attacks.',
-  'heart attack': 'A heart attack is blocked heart blood flow. Symptoms include chest pain, shortness of breath. Call emergency if suspected.',
-  'angina': 'Angina is chest pain from low heart blood flow, often tied to CAD.',
-  'arrhythmia': 'Arrhythmia is an irregular heartbeat, sometimes harmless, sometimes serious.',
-  'heart failure': 'Heart failure is when the heart pumps weakly, causing fatigue and swelling.',
-  
-  // Model explanations
-  'machine learning': 'Our AI uses a Neural Network to predict heart disease risk from health data.',
-  'models': 'We use a Neural Network for predictions, trained on medical data.',
-  'neural network': 'The Neural Network finds patterns in health data to predict risk.',
-  'shap': 'SHAP shows which health factors most affect your risk prediction.',
-  
-  // Lifestyle
-  'diet': 'Eat fruits, veggies, whole grains, and lean proteins. Limit salt and sugar.',
-  'exercise': 'Aim for 150 min/week of moderate exercise like walking.',
-  'smoking': 'Quitting smoking cuts heart disease risk significantly.',
-  'stress': 'Manage stress with exercise, meditation, or relaxation techniques.',
-  'alcohol': 'Limit alcohol to 1 drink/day for women, 2 for men.',
-  'weight': 'Healthy weight lowers BP, cholesterol, and heart risk.',
-  
-  // Project-specific
-  'thalach': 'Max heart rate (thalach) shows heart fitness. Normal is ~220 minus age.',
-  'trestbps': 'Resting BP (trestbps) <120/80 mmHg is healthy.',
-  'oldpeak': 'ST depression (oldpeak) signals heart stress during exercise.',
-  'ca': 'Major vessels (ca) ≥1 indicates artery issues.',
-  'thal': 'Thalassemia (thal) affects heart risk via blood health.',
-  'cp': 'Chest pain (cp) types indicate varying heart risk levels.',
-  'slope': 'ST slope during exercise helps assess heart function.',
-  'exang': 'Exercise angina (exang) suggests heart oxygen issues.',
-  'fbs': 'Fasting blood sugar (fbs) >120 mg/dL raises heart risk.',
-  'restecg': 'Resting ECG (restecg) detects heart electrical issues.',
-  'sex': 'Men face higher heart risk than women before menopause.',
-  'age': 'Heart risk rises after age 45 (men) or 55 (women).',
-  
-  // App tips
-  'feature importance chart': 'Feature Importance shows top risk factors.',
-  'shap values': 'SHAP values explain how metrics affect your risk.',
-  'risk factors chart': 'Risk Factors chart compares your metrics to norms.',
-  'simulation': 'Simulator shows how health changes impact risk.',
-  'prediction history': 'History tracks your risk trends.',
-  'model comparison chart': 'Model Comparison shows AI prediction agreement.',
-  
-  // Default
-  'default': 'I can help with heart health or app questions. Try “What is heart disease?” or “How does the app work?”'
-};
-
-// Suggested questions
-const SUGGESTED_QUESTIONS = [
-  'What is heart disease?',
-  'How does the prediction work?',
-  'What are risk factors?',
-  'How to prevent heart disease?',
-  'What do my results mean?',
-  'What’s healthy cholesterol?',
-  'How accurate is it?',
-  'How to use the simulator?'
-];
-
-const QUESTION_CATEGORIES = [
-  { 
-    name: 'Heart Health', 
-    icon: <FaHeartbeat />,
-    questions: [
-      'What is heart disease?',
-      'What are common symptoms?',
-      'How to prevent heart disease?',
-      'What’s healthy blood pressure?'
-    ]
-  },
-  { 
-    name: 'Using the App', 
-    icon: <FaTools />,
-    questions: [
-      'How does the prediction work?',
-      'How accurate is the prediction?',
-      'How to use the simulator?',
-      'What features does the app have?'
-    ]
-  },
-  { 
-    name: 'Understanding Results', 
-    icon: <FaInfoCircle />,
-    questions: [
-      'What do my results mean?',
-      'How is my risk calculated?',
-      'What are SHAP values?',
-      'What if I have high risk?'
-    ]
-  }
-];
-
+/**
+ * AI Assistant Component for Heart Health App
+ * Provides a chat interface for users to ask health-related questions
+ */
 const AIAssistant = forwardRef(({ userData }, ref) => {
+  // Drawer state
   const { isOpen, onOpen, onClose } = useDisclosure();
+  
+  // Chat state
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [isListening, setIsListening] = useState(false);
+  
+  // References
   const chatEndRef = useRef(null);
+  const scrollAreaRef = useRef(null);
   const toast = useToast();
   
-  // Background colors
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const userBubbleColor = useColorModeValue('blue.100', 'blue.700');
-  const aiBubbleColor = useColorModeValue('gray.100', 'gray.700');
+  // Theme colors
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
+  const headerBgColor = useColorModeValue('red.500', 'red.700');
+  const cardBgColor = useColorModeValue('white', 'gray.800');
+  const userBubbleBg = useColorModeValue('blue.50', 'blue.900');
+  const userBubbleColor = useColorModeValue('blue.800', 'white');
+  const aiBubbleBg = useColorModeValue('red.50', 'red.900');
+  const aiBubbleColor = useColorModeValue('gray.800', 'white');
   const inputBgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const highlightColor = useColorModeValue('red.500', 'red.300');
   
-  // Suggested queries
-  const suggestedQueries = [
-    { text: 'Heart disease symptoms', icon: FaHeartbeat },
-    { text: 'How to use this app?', icon: FaInfoCircle },
-    { text: 'Risk factors', icon: FaTools },
-    { text: 'Prevention tips', icon: FaQuestionCircle },
+  // Categories for suggested questions
+  const questionCategories = [
+    {
+      name: "Heart Disease",
+      icon: BsHeartPulseFill,
+      questions: [
+        "What are early signs of heart disease?",
+        "How can I lower my risk of heart disease?",
+        "What's the difference between heart attack and cardiac arrest?"
+      ]
+    },
+    {
+      name: "App Help",
+      icon: BsQuestionCircle,
+      questions: [
+        "How do I use the risk predictor?",
+        "What do my prediction results mean?",
+        "How accurate is this prediction model?"
+      ]
+    },
+    {
+      name: "Risk Factors",
+      icon: BsTools,
+      questions: [
+        "What are modifiable risk factors?",
+        "How does cholesterol affect heart health?",
+        "Is family history important for heart disease?"
+      ]
+    },
+    {
+      name: "Prevention",
+      icon: BsListCheck,
+      questions: [
+        "Best exercises for heart health?",
+        "Heart-healthy diet tips?",
+        "How can I manage stress for heart health?"
+      ]
+    }
   ];
   
-  // Expose functions via forwardRef
+  // Expose component methods via ref
   useImperativeHandle(ref, () => ({
     open: onOpen,
     close: onClose,
     addMessage: (text) => handleUserMessage(text)
   }));
   
-  // Scroll to bottom
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
   
+  // Helper for scrolling to bottom of chat
   const scrollToBottom = () => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
   
-  // Truncate long responses
-  const truncateResponse = (text, maxWords = 100) => {
-    const words = text.split(' ');
-    if (words.length <= maxWords) return { text, truncated: false };
-    return {
-      text: words.slice(0, maxWords).join(' ') + '...',
-      truncated: true
-    };
+  // Handle sending user message and getting AI response
+  const handleUserMessage = async (text) => {
+    // Add user message to chat
+    setMessages(prevMessages => [...prevMessages, { sender: 'user', text }]);
+    setInput('');
+    
+    // Show loading state
+    setLoading(true);
+    
+    try {
+      // Get response from API (with fallback handling)
+      const response = await getAIResponseWithFallback(text, userData || {});
+      
+      // Process response (truncate if needed)
+      const { processedText, fullText } = processResponse(response);
+      
+      // Add AI response to chat
+      setMessages(prev => [...prev, { 
+        sender: 'ai', 
+        text: processedText, 
+        fullText: fullText
+      }]);
+      
+    } catch (error) {
+      console.error("Error in AI response:", error);
+      
+      // Add error message to chat
+      setMessages(prev => [...prev, { 
+        sender: 'ai', 
+        text: "Sorry, I'm having trouble connecting right now. Please try again later.", 
+        isError: true 
+      }]);
+      
+      toast({
+        title: "Connection Error",
+        description: "Could not reach the AI assistant service.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
-  // Get AI response
-  const getAIResponse = async (userInput, healthData) => {
+  // Helper function to get AI response with fallback
+  const getAIResponseWithFallback = async (userInput, healthData) => {
     try {
-      setLoading(true);
-      
       const requestData = {
         question: userInput,
         health_data: healthData || {}
@@ -224,80 +178,251 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
       
       const response = await axios.post(`${API_URL}/assistant/chat`, requestData);
       
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         return response.data.data.response;
-      } else {
-        console.error("API error:", response.data.message);
+      }
+      
+      // If API returns failure but with a message
+      if (response.data && response.data.message) {
+        console.warn("API returned an error:", response.data.message);
         return getFallbackResponse(userInput);
       }
+      
+      // Unknown API response format
+      return getFallbackResponse(userInput);
     } catch (error) {
       console.error("Error getting AI response:", error);
       return getFallbackResponse(userInput);
-    } finally {
-      setLoading(false);
     }
   };
   
-  // Fallback response
+  // Fallback responses when API fails
   const getFallbackResponse = (userInput) => {
-    const lowercaseInput = userInput.toLowerCase();
-    if (AI_RESPONSES[lowercaseInput]) {
-      return AI_RESPONSES[lowercaseInput];
+    const input = userInput.toLowerCase();
+    
+    // Simple keyword matching for fallbacks
+    if (input.includes("heart attack") || input.includes("cardiac arrest")) {
+      return "A heart attack occurs when blood flow to part of the heart is blocked, while cardiac arrest means the heart suddenly stops beating. Heart attacks can lead to cardiac arrest, but they're different medical emergencies.";
     }
-    for (const key of Object.keys(AI_RESPONSES)) {
-      if (lowercaseInput.includes(key)) {
-        return AI_RESPONSES[key];
-      }
+    
+    if (input.includes("cholesterol") || input.includes("ldl") || input.includes("hdl")) {
+      return "Cholesterol comes in two main types: LDL (often called 'bad' cholesterol) and HDL ('good' cholesterol). High LDL levels can build up in your arteries, increasing heart disease risk. Aim for LDL below 100mg/dL and HDL above 60mg/dL.";
     }
-    return AI_RESPONSES['default'];
+    
+    if (input.includes("diet") || input.includes("eat") || input.includes("food")) {
+      return "A heart-healthy diet includes plenty of fruits, vegetables, whole grains, lean proteins, and healthy fats like those in olive oil and avocados. Limit sodium, added sugars, and saturated fats. The Mediterranean and DASH diets are both excellent for heart health.";
+    }
+    
+    if (input.includes("exercise") || input.includes("activity") || input.includes("workout")) {
+      return "For heart health, aim for at least 150 minutes of moderate aerobic activity weekly (like brisk walking). Include strength training twice weekly. Always check with your doctor before starting a new exercise program, especially if you have existing heart conditions.";
+    }
+    
+    // Default fallback
+    return "I'm here to help with heart health questions and guide you through using this application. Please feel free to ask me about heart disease risk factors, prevention tips, or how to use the prediction tools.";
   };
   
-  const handleUserMessage = async (text) => {
-    setMessages([...messages, { sender: 'user', text }]);
-    setInput('');
-    
-    const healthData = userData || {};
-    const aiResponse = await getAIResponse(text, healthData);
-    
-    // Truncate if too long
-    const { text: truncatedText, truncated } = truncateResponse(aiResponse);
-    setMessages(prev => [...prev, { sender: 'ai', text: truncatedText, fullText: truncated ? aiResponse : null }]);
-    
-    if (truncated) {
-      toast({
-        title: "Response Truncated",
-        description: "The AI response was shortened. Click 'Read More' to see the full answer.",
-        status: "info",
-        duration: 3000,
-        isClosable: true,
-      });
+  // Process and potentially truncate long responses
+  const processResponse = (text, maxWords = 80) => {
+    const words = text.split(' ');
+    if (words.length <= maxWords) {
+      return { processedText: text, fullText: null };
     }
+    
+    return {
+      processedText: words.slice(0, maxWords).join(' ') + '...',
+      fullText: text
+    };
   };
   
+  // Send message when button clicked or Enter pressed
   const handleSendMessage = () => {
     if (input.trim()) {
       handleUserMessage(input);
     }
   };
   
+  // Handle keyboard input
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && input.trim()) {
       handleSendMessage();
     }
   };
   
-  const handleSuggestedQuery = (query) => {
-    handleUserMessage(query);
+  // Handle clicking a suggested question
+  const handleSuggestedQuestion = (question) => {
+    handleUserMessage(question);
   };
   
-  // Handle Read More for truncated responses
+  // Expand truncated message
   const handleReadMore = (fullText, index) => {
     setMessages(prev => prev.map((msg, i) => 
       i === index ? { ...msg, text: fullText, fullText: null } : msg
     ));
   };
   
-  const drawerWidth = useBreakpointValue({ base: "100%", md: "400px" });
+  // Speech recognition for voice input (if browser supports it)
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      toast({
+        title: "Not Supported",
+        description: "Voice input is not supported in this browser.",
+        status: "warning",
+        duration: 3000
+      });
+      return;
+    }
+    
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+    
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+    
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      setIsListening(false);
+    };
+    
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    
+    recognition.start();
+  };
+  
+  const stopListening = () => {
+    setIsListening(false);
+    window.webkitSpeechRecognition && window.webkitSpeechRecognition().stop();
+  };
+  
+  // Responsive layout
+  const drawerWidth = useBreakpointValue({ base: "100%", md: "450px" });
+  
+  // Message bubble component
+  const MessageBubble = ({ message }) => {
+    const isUser = message.sender === 'user';
+    
+    return (
+      <Flex 
+        justify={isUser ? 'flex-end' : 'flex-start'} 
+        mb={3}
+        alignItems="flex-start"
+      >
+        {!isUser && (
+          <Avatar 
+            icon={<FaRobot />} 
+            bg={highlightColor} 
+            color="white" 
+            size="sm" 
+            mr={2} 
+            mt={1} 
+          />
+        )}
+        
+        <Box
+          maxW="80%"
+          bg={isUser ? userBubbleBg : aiBubbleBg}
+          color={isUser ? userBubbleColor : aiBubbleColor}
+          px={4}
+          py={2}
+          borderRadius="lg"
+          boxShadow="sm"
+          borderTopLeftRadius={isUser ? 'lg' : 'sm'}
+          borderTopRightRadius={isUser ? 'sm' : 'lg'}
+        >
+          <Text>{message.text}</Text>
+          {message.fullText && (
+            <Button
+              size="xs"
+              variant="link"
+              colorScheme="red" 
+              mt={1}
+              onClick={() => handleReadMore(message.fullText, messages.findIndex(m => m === message))}
+            >
+              Read More
+            </Button>
+          )}
+        </Box>
+        
+        {isUser && (
+          <Avatar 
+            icon={<Text fontSize="xs">You</Text>} 
+            bg="blue.500"
+            color="white" 
+            size="sm" 
+            ml={2} 
+            mt={1} 
+          />
+        )}
+      </Flex>
+    );
+  };
+  
+  // Welcome screen component
+  const WelcomeScreen = () => (
+    <VStack spacing={8} pt={6} pb={12}>
+      <Box 
+        bg={cardBgColor} 
+        borderRadius="xl" 
+        p={6} 
+        shadow="md"
+        width="100%"
+        textAlign="center"
+      >
+        <Center mb={6}>
+          <Avatar 
+            size="xl" 
+            bg={headerBgColor}
+            icon={<FaRobot fontSize="2rem" />}
+          />
+        </Center>
+        <Heading size="md" mb={2}>Heart Health Assistant</Heading>
+        <Text mb={4}>
+          I can answer your questions about heart health and help you navigate this app.
+          What would you like to know?
+        </Text>
+      </Box>
+      
+      {questionCategories.map((category, idx) => (
+        <Box 
+          key={idx} 
+          width="100%" 
+          bg={cardBgColor} 
+          p={4} 
+          borderRadius="lg"
+          shadow="sm"
+        >
+          <HStack mb={3}>
+            <Box as={category.icon} color={highlightColor} />
+            <Text fontWeight="bold">{category.name}</Text>
+          </HStack>
+          
+          <VStack align="stretch" spacing={2}>
+            {category.questions.map((question, qIdx) => (
+              <Button
+                key={qIdx}
+                variant="ghost"
+                justifyContent="flex-start"
+                size="sm"
+                leftIcon={<Text fontSize="xs">•</Text>}
+                onClick={() => handleSuggestedQuestion(question)}
+                _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+              >
+                {question}
+              </Button>
+            ))}
+          </VStack>
+        </Box>
+      ))}
+    </VStack>
+  );
   
   return (
     <Drawer
@@ -308,128 +433,107 @@ const AIAssistant = forwardRef(({ userData }, ref) => {
       finalFocusRef={null}
     >
       <DrawerOverlay />
-      <DrawerContent width={drawerWidth}>
-        <DrawerCloseButton />
-        <DrawerHeader borderBottomWidth="1px" bg={useColorModeValue('blue.500', 'blue.700')} color="white">
-          <Flex align="center">
-            <FaRobot style={{ marginRight: '8px', marginBottom:'10px' }} />
-            <Text>Heart Health Assistant</Text>
+      <DrawerContent width={drawerWidth} bg={bgColor}>
+        <DrawerCloseButton color="white" />
+        <DrawerHeader bg={headerBgColor} color="white">
+          <Flex align="center" justify="space-between">
+            <HStack>
+              <FaHeartbeat />
+              <Text>Heart Health Assistant</Text>
+            </HStack>
+            {messages.length > 0 && (
+              <Badge colorScheme="white" variant="outline" fontSize="xs" px={2}>
+                {messages.filter(m => m.sender === 'user').length} Questions
+              </Badge>
+            )}
           </Flex>
         </DrawerHeader>
 
-        <DrawerBody p={0}>
-          <VStack spacing={0} h="100%">
-            <Box flex="1" width="100%" p={4} overflowY="auto" maxHeight="calc(100vh - 200px)">
-              {messages.length === 0 ? (
-                <VStack spacing={4} align="center" justify="center" height="100%">
-                  <Avatar icon={<FaRobot fontSize="1.5rem"/>} bg="blue.500" size="xl" />
-                  <Text fontWeight="bold" fontSize="lg">Hello! I'm your Heart Health Assistant</Text>
-                  <Text textAlign="center">Ask about heart health or the app.</Text>
-                  
-                  <HStack spacing={2} mt={4} flexWrap="wrap" justifyContent="center">
-                    {suggestedQueries.map((query, index) => (
-                      <Tag 
-                        key={index}
-                        size="lg" 
-                        borderRadius="full" 
-                        variant="solid" 
-                        colorScheme="blue"
-                        cursor="pointer"
-                        position={'relative'}
-                        bottom={50}
-                        onClick={() => handleSuggestedQuery(query.text)}
-                        p={2}
-                        m={1}
-                      >
-                        <HStack spacing={1}>
-                          <Box as={query.icon} />
-                          <Text>{query.text}</Text>
-                        </HStack>
-                      </Tag>
-                    ))}
-                  </HStack>
-                </VStack>
-              ) : (
-                <VStack spacing={4} align="stretch">
-                  {messages.map((message, index) => (
-                    <Flex 
-                      key={index} 
-                      justify={message.sender === 'user' ? 'flex-end' : 'flex-start'}
+        <DrawerBody p={0} bg={bgColor}>
+          {/* Chat area with messages or welcome screen */}
+          <Box 
+            height="calc(100vh - 150px)" 
+            overflowY="auto" 
+            px={4} 
+            py={3}
+            ref={scrollAreaRef}
+          >
+            {messages.length === 0 ? (
+              <WelcomeScreen />
+            ) : (
+              <VStack spacing={4} align="stretch">
+                {messages.map((message, index) => (
+                  <MessageBubble key={index} message={message} />
+                ))}
+                
+                {/* Loading indicator */}
+                {loading && (
+                  <Flex align="center" ml={10}>
+                    <Avatar 
+                      icon={<FaRobot />} 
+                      bg={highlightColor} 
+                      color="white" 
+                      size="sm" 
+                      mr={2} 
+                    />
+                    <Box 
+                      bg={aiBubbleBg} 
+                      color={aiBubbleColor}
+                      px={4} 
+                      py={2} 
+                      borderRadius="lg"
                     >
-                      <Box
-                        bg={message.sender === 'user' ? userBubbleColor : aiBubbleColor}
-                        color={message.sender === 'user' ? 'black' : 'black'}
-                        borderRadius="lg"
-                        px={4}
-                        py={2}
-                        maxWidth="80%"
-                        boxShadow="sm"
-                      >
-                        <Text>{message.text}</Text>
-                        {message.fullText && (
-                          <Button
-                            size="xs"
-                            variant="link"
-                            color="blue.500"
-                            mt={1}
-                            onClick={() => handleReadMore(message.fullText, index)}
-                          >
-                            Read More
-                          </Button>
-                        )}
-                      </Box>
-                    </Flex>
-                  ))}
-                  {loading && (
-                    <Flex justify="flex-start">
-                      <Box
-                        bg={aiBubbleColor}
-                        borderRadius="lg"
-                        px={4}
-                        py={2}
-                        maxWidth="80%"
-                      >
-                        <Spinner size="sm" color="blue.500" mr={2} />
-                        <Text as="span">Typing...</Text>
-                      </Box>
-                    </Flex>
-                  )}
-                  <div ref={chatEndRef} />
-                </VStack>
-              )}
-            </Box>
-            
-            <Box
-              width="100%"
-              p={4}
-              borderTopWidth="1px"
-              borderColor={borderColor}
-              bg={bgColor}
-            >
-              <InputGroup size="md">
-                <Input
-                  placeholder="Ask a question..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  bg={inputBgColor}
-                  disabled={loading}
-                />
-                <InputRightElement width="3rem">
+                      <HStack>
+                        <Spinner size="sm" />
+                        <Text fontStyle="italic">Thinking...</Text>
+                      </HStack>
+                    </Box>
+                  </Flex>
+                )}
+                <div ref={chatEndRef} />
+              </VStack>
+            )}
+          </Box>
+          
+          {/* Input area */}
+          <Box
+            p={3}
+            borderTopWidth="1px"
+            borderColor={borderColor}
+            bg={cardBgColor}
+            position="relative"
+          >
+            <InputGroup>
+              <Input
+                placeholder="Type your question here..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                bg={inputBgColor}
+                pr="4.5rem"
+                disabled={loading || isListening}
+              />
+              <InputRightElement width="4.5rem">
+                <HStack spacing={1}>
                   <IconButton
-                    h="1.75rem"
-                    w="1.75rem"
+                    aria-label={isListening ? "Stop listening" : "Start voice input"}
+                    icon={isListening ? <FaStop /> : <FaMicrophone />}
                     size="sm"
+                    onClick={isListening ? stopListening : startListening}
+                    colorScheme={isListening ? "red" : "gray"}
+                  />
+                  <IconButton
+                    aria-label="Send message"
                     icon={<FaPaperPlane />}
+                    size="sm"
                     colorScheme="red"
                     onClick={handleSendMessage}
-                    disabled={!input.trim() || loading}
-                    aria-label="Send message"
+                    isDisabled={!input.trim() || loading}
                   />
-                </InputRightElement>
-              </InputGroup>
-            </Box>
-          </VStack>
+                </HStack>
+              </InputRightElement>
+            </InputGroup>
+          </Box>
         </DrawerBody>
       </DrawerContent>
     </Drawer>

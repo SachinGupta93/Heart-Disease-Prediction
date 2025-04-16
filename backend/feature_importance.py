@@ -4,8 +4,12 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import os
 
+# Get the current directory and construct absolute paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, "model", "heart_model.pkl")
+
 # Load the Random Forest model (which has feature_importances_)
-model = joblib.load("model/heart_model.pkl")
+model = joblib.load(model_path)
 
 # Feature names
 feature_names = [
@@ -59,8 +63,9 @@ def get_model_performance_metrics():
     Calculate and return performance metrics for all models
     """
     try:
-        # Load test data
-        test_data = pd.read_csv("dataset/heart.csv")
+        # Load test data using absolute path
+        dataset_path = os.path.join(current_dir, "dataset", "heart.csv")
+        test_data = pd.read_csv(dataset_path)
         
         # Use a small subset for testing if available, otherwise use last 20% of data
         if 'test' in test_data.columns:
@@ -78,9 +83,11 @@ def get_model_performance_metrics():
             'neural_network': {}
         }
         
-        # Load Random Forest model
-        rf_model = joblib.load("model/heart_model.pkl")
-        rf_scaler = joblib.load("model/scaler.pkl")
+        # Load Random Forest model using absolute paths
+        rf_model_path = os.path.join(current_dir, "model", "heart_model.pkl")
+        rf_scaler_path = os.path.join(current_dir, "model", "scaler.pkl")
+        rf_model = joblib.load(rf_model_path)
+        rf_scaler = joblib.load(rf_scaler_path)
         
         # Scale data for Random Forest
         X_test_rf_scaled = rf_scaler.transform(X_test)
@@ -98,11 +105,11 @@ def get_model_performance_metrics():
             'roc_auc': roc_auc_score(y_test, rf_probs)
         }
         
-        # Try to load Neural Network model
+        # Try to load Neural Network model using absolute paths
         try:
             from backend.neural_network_model import NeuralNetworkModel
-            nn_model_path = "model/neural_network_model.pkl"
-            nn_scaler_path = "model/scaler_nn.pkl"
+            nn_model_path = os.path.join(current_dir, "model", "neural_network_model.pkl")
+            nn_scaler_path = os.path.join(current_dir, "model", "scaler_nn.pkl")
             
             if os.path.exists(nn_model_path) and os.path.exists(nn_scaler_path):
                 nn_model = joblib.load(nn_model_path)

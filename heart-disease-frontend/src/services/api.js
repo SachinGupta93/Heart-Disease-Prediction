@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { auth } from '../firebase';
 
-// API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// API base URL - make sure this matches your backend server
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 // Create axios instance
 const api = axios.create({
@@ -62,9 +62,27 @@ export const checkApiHealth = async () => {
 // Ensemble prediction with fallback mechanism
 export const getEnsemblePrediction = async (formData) => {
   try {
-    console.log('Calling ensemble prediction API with data:', formData);
+    // Ensure all form data values are properly formatted before sending
+    const sanitizedData = {
+      age: formData.age ? parseInt(formData.age) : 0,
+      sex: formData.sex !== undefined && formData.sex !== '' ? parseInt(formData.sex) : 0,
+      cp: formData.cp !== undefined && formData.cp !== '' ? parseInt(formData.cp) : 0,
+      trestbps: formData.trestbps ? parseInt(formData.trestbps) : 0,
+      chol: formData.chol ? parseInt(formData.chol) : 0,
+      fbs: formData.fbs !== undefined && formData.fbs !== '' ? parseInt(formData.fbs) : 0,
+      restecg: formData.restecg !== undefined && formData.restecg !== '' ? parseInt(formData.restecg) : 0,
+      thalach: formData.thalach ? parseInt(formData.thalach) : 0,
+      exang: formData.exang !== undefined && formData.exang !== '' ? parseInt(formData.exang) : 0,
+      oldpeak: formData.oldpeak ? parseFloat(formData.oldpeak) : 0.0,
+      slope: formData.slope !== undefined && formData.slope !== '' ? parseInt(formData.slope) : 0,
+      ca: formData.ca !== undefined && formData.ca !== '' ? parseInt(formData.ca) : 0,
+      thal: formData.thal !== undefined && formData.thal !== '' ? parseInt(formData.thal) : 1
+    };
+
+    console.log('Calling ensemble prediction API with sanitized data:', sanitizedData);
+    
     // Create a custom request with a longer timeout just for this call
-    const response = await api.post('/predict/ensemble', formData, { 
+    const response = await api.post('/predict/ensemble', sanitizedData, { 
       timeout: 30000 // Increase timeout to 30 seconds
     });
     return response.data;

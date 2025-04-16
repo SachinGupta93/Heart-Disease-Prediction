@@ -951,266 +951,261 @@ const PredictionForm = () => {
           </MotionBox>
         </SimpleGrid>
         
-        {/* Advanced Clinical Parameters (Collapsible) */}
+        {/* Advanced Clinical Parameters (No longer collapsible) */}
         <MotionBox
           mt={3}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.5 }}
         >
-          <Accordion allowToggle>
-            <AccordionItem border="none">
-              <AccordionButton 
-                px={4}
-                py={3} 
-                bg={highlightBg}
-                borderRadius="md"
-                _hover={{ bg: useColorModeValue('blue.100', 'blue.800') }}
-                _focus={{ boxShadow: 'none' }}
+          {/* Header for Advanced Clinical Parameters */}
+          <Box 
+            px={4}
+            py={3} 
+            bg={highlightBg}
+            borderRadius="md"
+            mb={4}
+          >
+            <Flex flex="1" align="center">
+              <Icon as={FaHospitalUser} w={5} h={5} color={headingColor} mr={3} />
+              <Heading size="md" color={headingColor} display="flex" alignItems="center">
+                Advanced Clinical Parameters
+              </Heading>
+            </Flex>
+          </Box>
+
+          {/* Info message */}
+          <Box 
+            p={4} 
+            mb={5} 
+            bg={cardBg} 
+            borderRadius="md" 
+            borderLeft="4px"
+            borderColor="purple.500"
+          >
+            <Text fontSize="sm" color={secondaryText}>
+              <Icon as={InfoIcon} mr={2} color="purple.500" />
+              These fields are optional and typically provided by your healthcare provider.
+              Adding this data may improve prediction accuracy.
+            </Text>
+          </Box>
+          
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            <Box>
+              {/* Resting ECG */}
+              <FormControl 
+                mb={6}
+                isInvalid={!!formErrors.restecg}
+                position="relative"
               >
-                <Flex flex="1" align="center">
-                  <Icon as={FaHospitalUser} w={5} h={5} color={headingColor} mr={3} />
-                  <Heading size="md" color={headingColor} display="flex" alignItems="center">
-                    Advanced Clinical Parameters
-                  </Heading>
+                <Flex align="center" mb={1}>
+                  <Icon as={fieldIcons.restecg} color={headingColor} mr={2} />
+                  <FormLabel fontWeight="medium" mb={0}>Resting ECG Results</FormLabel>
+                  <FieldInfoTooltip info={fieldDescriptions.restecg} />
+                  {getFieldStatus('restecg') === 'filled' && !formErrors.restecg && (
+                    <Icon as={CheckIcon} ml={2} color="green.500" />
+                  )}
                 </Flex>
-                <AccordionIcon w={6} h={6} color={headingColor} />
-              </AccordionButton>
-              <AccordionPanel pt={5} pb={4}>
-                <Box 
-                  p={4} 
-                  mb={5} 
-                  bg={cardBg} 
-                  borderRadius="md" 
-                  borderLeft="4px"
-                  borderColor="purple.500"
+                <Select 
+                  name="restecg" 
+                  placeholder="Select ECG result" 
+                  value={formData.restecg} 
+                  onChange={handleChange}
+                  bg={fieldBg}
+                  borderColor={
+                    formErrors.restecg ? 'red.500' : 
+                    getFieldStatus('restecg') === 'filled' ? 'green.500' : 
+                    borderColor
+                  }
+                  _hover={{ borderColor: 'blue.300' }}
+                  icon={<ChevronRightIcon />}
                 >
-                  <Text fontSize="sm" color={secondaryText}>
-                    <Icon as={InfoIcon} mr={2} color="purple.500" />
-                    These fields are optional and typically provided by your healthcare provider.
-                    Adding this data may improve prediction accuracy.
-                  </Text>
-                </Box>
-                
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <Box>
-                    {/* Resting ECG */}
-                    <FormControl 
-                      mb={6}
-                      isInvalid={!!formErrors.restecg}
-                      position="relative"
-                    >
-                      <Flex align="center" mb={1}>
-                        <Icon as={fieldIcons.restecg} color={headingColor} mr={2} />
-                        <FormLabel fontWeight="medium" mb={0}>Resting ECG Results</FormLabel>
-                        <FieldInfoTooltip info={fieldDescriptions.restecg} />
-                        {getFieldStatus('restecg') === 'filled' && !formErrors.restecg && (
-                          <Icon as={CheckIcon} ml={2} color="green.500" />
-                        )}
-                      </Flex>
-                      <Select 
-                        name="restecg" 
-                        placeholder="Select ECG result" 
-                        value={formData.restecg} 
-                        onChange={handleChange}
-                        bg={fieldBg}
-                        borderColor={
-                          formErrors.restecg ? 'red.500' : 
-                          getFieldStatus('restecg') === 'filled' ? 'green.500' : 
-                          borderColor
-                        }
-                        _hover={{ borderColor: 'blue.300' }}
-                        icon={<ChevronRightIcon />}
-                      >
-                        <option value="0">Normal</option>
-                        <option value="1">ST-T Wave Abnormality</option>
-                        <option value="2">Left Ventricular Hypertrophy</option>
-                      </Select>
-                      {formErrors.restecg && (
-                        <FormHelperText color="red.500">
-                          <Icon as={FaExclamationCircle} mr={1} />
-                          {formErrors.restecg}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                    
-                    {/* ST Depression */}
-                    <FormControl 
-                      mb={6}
-                      isInvalid={!!formErrors.oldpeak}
-                      position="relative"
-                    >
-                      <Flex align="center" mb={1}>
-                        <Icon as={fieldIcons.oldpeak} color={headingColor} mr={2} />
-                        <FormLabel fontWeight="medium" mb={0}>ST Depression</FormLabel>
-                        <FieldInfoTooltip info={fieldDescriptions.oldpeak} />
-                        {getFieldStatus('oldpeak') === 'filled' && !formErrors.oldpeak && (
-                          <Icon as={CheckIcon} ml={2} color="green.500" />
-                        )}
-                      </Flex>
-                      <NumberInput 
-                        min={0} 
-                        max={10}
-                        step={0.1}
-                        precision={1}
-                        value={formData.oldpeak} 
-                        onChange={(v) => handleNumberChange('oldpeak', v)}
-                        bg={fieldBg}
-                      >
-                        <NumberInputField 
-                          name="oldpeak" 
-                          placeholder="Enter ST depression value" 
-                          borderColor={
-                            formErrors.oldpeak ? 'red.500' : 
-                            getFieldStatus('oldpeak') === 'filled' ? 'green.500' : 
-                            borderColor
-                          }
-                          _hover={{ borderColor: 'blue.300' }}
-                        />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                      {formErrors.oldpeak ? (
-                        <FormHelperText color="red.500">
-                          <Icon as={FaExclamationCircle} mr={1} />
-                          {formErrors.oldpeak}
-                        </FormHelperText>
-                      ) : (
-                        <FormHelperText fontSize="xs" color={secondaryText}>
-                          <Icon as={InfoIcon} mr={1} color="blue.500" />
-                          {fieldGuides.oldpeak}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                  </Box>
-                  
-                  <Box>
-                    {/* ST Slope */}
-                    <FormControl 
-                      mb={6}
-                      isInvalid={!!formErrors.slope}
-                      position="relative"
-                    >
-                      <Flex align="center" mb={1}>
-                        <Icon as={fieldIcons.slope} color={headingColor} mr={2} />
-                        <FormLabel fontWeight="medium" mb={0}>ST Segment Slope</FormLabel>
-                        <FieldInfoTooltip info={fieldDescriptions.slope} />
-                        {getFieldStatus('slope') === 'filled' && !formErrors.slope && (
-                          <Icon as={CheckIcon} ml={2} color="green.500" />
-                        )}
-                      </Flex>
-                      <Select 
-                        name="slope" 
-                        placeholder="Select slope type" 
-                        value={formData.slope} 
-                        onChange={handleChange}
-                        bg={fieldBg}
-                        borderColor={
-                          formErrors.slope ? 'red.500' : 
-                          getFieldStatus('slope') === 'filled' ? 'green.500' : 
-                          borderColor
-                        }
-                        _hover={{ borderColor: 'blue.300' }}
-                        icon={<ChevronRightIcon />}
-                      >
-                        <option value="0">Upsloping</option>
-                        <option value="1">Flat</option>
-                        <option value="2">Downsloping</option>
-                      </Select>
-                      {formErrors.slope && (
-                        <FormHelperText color="red.500">
-                          <Icon as={FaExclamationCircle} mr={1} />
-                          {formErrors.slope}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                    
-                    {/* Number of Vessels */}
-                    <FormControl 
-                      mb={6}
-                      isInvalid={!!formErrors.ca}
-                      position="relative"
-                    >
-                      <Flex align="center" mb={1}>
-                        <Icon as={fieldIcons.ca} color={headingColor} mr={2} />
-                        <FormLabel fontWeight="medium" mb={0}>Number of Major Vessels</FormLabel>
-                        <FieldInfoTooltip info={fieldDescriptions.ca} />
-                        {getFieldStatus('ca') === 'filled' && !formErrors.ca && (
-                          <Icon as={CheckIcon} ml={2} color="green.500" />
-                        )}
-                      </Flex>
-                      <Select 
-                        name="ca" 
-                        placeholder="Select number of vessels" 
-                        value={formData.ca} 
-                        onChange={handleChange}
-                        bg={fieldBg}
-                        borderColor={
-                          formErrors.ca ? 'red.500' : 
-                          getFieldStatus('ca') === 'filled' ? 'green.500' : 
-                          borderColor
-                        }
-                        _hover={{ borderColor: 'blue.300' }}
-                        icon={<ChevronRightIcon />}
-                      >
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                      </Select>
-                      {formErrors.ca && (
-                        <FormHelperText color="red.500">
-                          <Icon as={FaExclamationCircle} mr={1} />
-                          {formErrors.ca}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                    
-                    {/* Thalassemia */}
-                    <FormControl 
-                      isInvalid={!!formErrors.thal}
-                      position="relative"
-                    >
-                      <Flex align="center" mb={1}>
-                        <Icon as={fieldIcons.thal} color={headingColor} mr={2} />
-                        <FormLabel fontWeight="medium" mb={0}>Thalassemia</FormLabel>
-                        <FieldInfoTooltip info={fieldDescriptions.thal} />
-                        {getFieldStatus('thal') === 'filled' && !formErrors.thal && (
-                          <Icon as={CheckIcon} ml={2} color="green.500" />
-                        )}
-                      </Flex>
-                      <Select 
-                        name="thal" 
-                        placeholder="Select thalassemia type" 
-                        value={formData.thal} 
-                        onChange={handleChange}
-                        bg={fieldBg}
-                        borderColor={
-                          formErrors.thal ? 'red.500' : 
-                          getFieldStatus('thal') === 'filled' ? 'green.500' : 
-                          borderColor
-                        }
-                        _hover={{ borderColor: 'blue.300' }}
-                        icon={<ChevronRightIcon />}
-                      >
-                        <option value="1">Normal</option>
-                        <option value="2">Fixed Defect</option>
-                        <option value="3">Reversible Defect</option>
-                      </Select>
-                      {formErrors.thal && (
-                        <FormHelperText color="red.500">
-                          <Icon as={FaExclamationCircle} mr={1} />
-                          {formErrors.thal}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                  </Box>
-                </SimpleGrid>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
+                  <option value="0">Normal</option>
+                  <option value="1">ST-T Wave Abnormality</option>
+                  <option value="2">Left Ventricular Hypertrophy</option>
+                </Select>
+                {formErrors.restecg && (
+                  <FormHelperText color="red.500">
+                    <Icon as={FaExclamationCircle} mr={1} />
+                    {formErrors.restecg}
+                  </FormHelperText>
+                )}
+              </FormControl>
+              
+              {/* ST Depression */}
+              <FormControl 
+                mb={6}
+                isInvalid={!!formErrors.oldpeak}
+                position="relative"
+              >
+                <Flex align="center" mb={1}>
+                  <Icon as={fieldIcons.oldpeak} color={headingColor} mr={2} />
+                  <FormLabel fontWeight="medium" mb={0}>ST Depression</FormLabel>
+                  <FieldInfoTooltip info={fieldDescriptions.oldpeak} />
+                  {getFieldStatus('oldpeak') === 'filled' && !formErrors.oldpeak && (
+                    <Icon as={CheckIcon} ml={2} color="green.500" />
+                  )}
+                </Flex>
+                <NumberInput 
+                  min={0} 
+                  max={10}
+                  step={0.1}
+                  precision={1}
+                  value={formData.oldpeak} 
+                  onChange={(v) => handleNumberChange('oldpeak', v)}
+                  bg={fieldBg}
+                >
+                  <NumberInputField 
+                    name="oldpeak" 
+                    placeholder="Enter ST depression value" 
+                    borderColor={
+                      formErrors.oldpeak ? 'red.500' : 
+                      getFieldStatus('oldpeak') === 'filled' ? 'green.500' : 
+                      borderColor
+                    }
+                    _hover={{ borderColor: 'blue.300' }}
+                  />
+                  <NumberInputStepper>
+                    <NumberIncrementStepper />
+                    <NumberDecrementStepper />
+                  </NumberInputStepper>
+                </NumberInput>
+                {formErrors.oldpeak ? (
+                  <FormHelperText color="red.500">
+                    <Icon as={FaExclamationCircle} mr={1} />
+                    {formErrors.oldpeak}
+                  </FormHelperText>
+                ) : (
+                  <FormHelperText fontSize="xs" color={secondaryText}>
+                    <Icon as={InfoIcon} mr={1} color="blue.500" />
+                    {fieldGuides.oldpeak}
+                  </FormHelperText>
+                )}
+              </FormControl>
+            </Box>
+            
+            <Box>
+              {/* ST Slope */}
+              <FormControl 
+                mb={6}
+                isInvalid={!!formErrors.slope}
+                position="relative"
+              >
+                <Flex align="center" mb={1}>
+                  <Icon as={fieldIcons.slope} color={headingColor} mr={2} />
+                  <FormLabel fontWeight="medium" mb={0}>ST Segment Slope</FormLabel>
+                  <FieldInfoTooltip info={fieldDescriptions.slope} />
+                  {getFieldStatus('slope') === 'filled' && !formErrors.slope && (
+                    <Icon as={CheckIcon} ml={2} color="green.500" />
+                  )}
+                </Flex>
+                <Select 
+                  name="slope" 
+                  placeholder="Select slope type" 
+                  value={formData.slope} 
+                  onChange={handleChange}
+                  bg={fieldBg}
+                  borderColor={
+                    formErrors.slope ? 'red.500' : 
+                    getFieldStatus('slope') === 'filled' ? 'green.500' : 
+                    borderColor
+                  }
+                  _hover={{ borderColor: 'blue.300' }}
+                  icon={<ChevronRightIcon />}
+                >
+                  <option value="0">Upsloping</option>
+                  <option value="1">Flat</option>
+                  <option value="2">Downsloping</option>
+                </Select>
+                {formErrors.slope && (
+                  <FormHelperText color="red.500">
+                    <Icon as={FaExclamationCircle} mr={1} />
+                    {formErrors.slope}
+                  </FormHelperText>
+                )}
+              </FormControl>
+              
+              {/* Number of Vessels */}
+              <FormControl 
+                mb={6}
+                isInvalid={!!formErrors.ca}
+                position="relative"
+              >
+                <Flex align="center" mb={1}>
+                  <Icon as={fieldIcons.ca} color={headingColor} mr={2} />
+                  <FormLabel fontWeight="medium" mb={0}>Number of Major Vessels</FormLabel>
+                  <FieldInfoTooltip info={fieldDescriptions.ca} />
+                  {getFieldStatus('ca') === 'filled' && !formErrors.ca && (
+                    <Icon as={CheckIcon} ml={2} color="green.500" />
+                  )}
+                </Flex>
+                <Select 
+                  name="ca" 
+                  placeholder="Select number of vessels" 
+                  value={formData.ca} 
+                  onChange={handleChange}
+                  bg={fieldBg}
+                  borderColor={
+                    formErrors.ca ? 'red.500' : 
+                    getFieldStatus('ca') === 'filled' ? 'green.500' : 
+                    borderColor
+                  }
+                  _hover={{ borderColor: 'blue.300' }}
+                  icon={<ChevronRightIcon />}
+                >
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </Select>
+                {formErrors.ca && (
+                  <FormHelperText color="red.500">
+                    <Icon as={FaExclamationCircle} mr={1} />
+                    {formErrors.ca}
+                  </FormHelperText>
+                )}
+              </FormControl>
+              
+              {/* Thalassemia */}
+              <FormControl 
+                isInvalid={!!formErrors.thal}
+                position="relative"
+              >
+                <Flex align="center" mb={1}>
+                  <Icon as={fieldIcons.thal} color={headingColor} mr={2} />
+                  <FormLabel fontWeight="medium" mb={0}>Thalassemia</FormLabel>
+                  <FieldInfoTooltip info={fieldDescriptions.thal} />
+                  {getFieldStatus('thal') === 'filled' && !formErrors.thal && (
+                    <Icon as={CheckIcon} ml={2} color="green.500" />
+                  )}
+                </Flex>
+                <Select 
+                  name="thal" 
+                  placeholder="Select thalassemia type" 
+                  value={formData.thal} 
+                  onChange={handleChange}
+                  bg={fieldBg}
+                  borderColor={
+                    formErrors.thal ? 'red.500' : 
+                    getFieldStatus('thal') === 'filled' ? 'green.500' : 
+                    borderColor
+                  }
+                  _hover={{ borderColor: 'blue.300' }}
+                  icon={<ChevronRightIcon />}
+                >
+                  <option value="1">Normal</option>
+                  <option value="2">Fixed Defect</option>
+                  <option value="3">Reversible Defect</option>
+                </Select>
+                {formErrors.thal && (
+                  <FormHelperText color="red.500">
+                    <Icon as={FaExclamationCircle} mr={1} />
+                    {formErrors.thal}
+                  </FormHelperText>
+                )}
+              </FormControl>
+            </Box>
+          </SimpleGrid>
         </MotionBox>
         
         <Divider my={5} />

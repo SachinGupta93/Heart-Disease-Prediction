@@ -11,7 +11,7 @@ import {
   FaDatabase, FaInfoCircle, FaExclamationTriangle, FaPercentage,
   FaClipboardCheck, FaUserMd, FaRegLightbulb, FaFingerprint
 } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
@@ -27,6 +27,7 @@ const ExplainableAi = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isChartReady, setIsChartReady] = useState(false);
   const tabsRef = useRef(null);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   
   const { currentUser } = useAuth();
   
@@ -81,14 +82,70 @@ const ExplainableAi = () => {
     { name: 'Heart Disease', value: 137, color: '#FF8042' }
   ];
 
+  // Enhanced chart animation variants
+  const chartAnimationVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.8,
+        ease: "easeOut",
+        delay: 0.2
+      }
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      transition: {
+        duration: 0.3
+      }
+    }
+  };
+
+  // Improved animation properties for each chart type
+  const barChartAnimationProps = {
+    animationDuration: 1500,
+    animationEasing: "ease-out",
+    animationBegin: 200
+  };
+
+  const lineChartAnimationProps = {
+    animationDuration: 1600,
+    animationEasing: "ease-out", 
+    animationBegin: 200
+  };
+
+  const pieChartAnimationProps = {
+    animationDuration: 1400,
+    animationEasing: "ease-out",
+    animationBegin: 200  
+  };
+
+  const staggeredAnimationDelay = 0.1;
+
+  // Improved loading timing
   useEffect(() => {
-    // Small delay to ensure containers are properly mounted before rendering charts
-    const timer = setTimeout(() => {
-      setIsChartReady(true);
-    }, 1000); // Increasing timeout to ensure DOM is fully rendered
+    let mounted = true;
     
-    return () => clearTimeout(timer);
-  }, []);
+    // Progressive loading effect
+    const timer = setTimeout(() => {
+      if (mounted) {
+        setIsChartReady(true);
+      }
+    }, 400);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [activeTabIndex]);
+
+  // Handle tab changes to trigger animations
+  const handleTabChange = (index) => {
+    setIsChartReady(false);
+    setActiveTabIndex(index);
+  };
 
   // Add sample prediction data
   const [predictionData, setPredictionData] = useState({
@@ -105,19 +162,6 @@ const ExplainableAi = () => {
     prediction: 0.75, // Sample prediction probability
     risk_category: 'High'
   });
-
-  const chartAnimationVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { 
-        duration: 0.8,
-        ease: "easeOut",
-        delay: 0.2
-      }
-    }
-  };
 
   const listItemVariants = {
     hidden: { opacity: 0, x: -10 },
@@ -158,7 +202,13 @@ const ExplainableAi = () => {
         </Text>
       </MotionBox>
 
-      <Tabs variant="enclosed" colorScheme="blue" mb={8} ref={tabsRef}>
+      <Tabs 
+        variant="enclosed" 
+        colorScheme="blue" 
+        mb={8} 
+        ref={tabsRef}
+        onChange={handleTabChange}
+      >
         <TabList>
           <Tab>
             <Flex align="center">
@@ -221,12 +271,20 @@ const ExplainableAi = () => {
                 variants={chartAnimationVariants}
                 initial="hidden"
                 animate={isChartReady ? "visible" : "hidden"}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.3 }}
               >
+                {!isChartReady && (
+                  <Flex justify="center" align="center" height="100%">
+                    <Spinner size="xl" thickness="4px" color="blue.500" />
+                  </Flex>
+                )}
                 {isChartReady && (
                   <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
                     <BarChart
                       data={featureImportanceData}
                       margin={{ top: 20, right: 30, left: 50, bottom: 100 }}
+                      {...barChartAnimationProps}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={borderColor} />
                       <XAxis 
@@ -253,9 +311,14 @@ const ExplainableAi = () => {
                           color: textColor
                         }}
                       />
-                      <Bar dataKey="value" fill="#8884d8" animationDuration={1500} animationEasing="ease-out">
+                      <Bar dataKey="value" fill="#8884d8">
                         {featureImportanceData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.color} 
+                            fillOpacity={0.9}
+                            strokeWidth={1}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -382,47 +445,94 @@ const ExplainableAi = () => {
                 Higher values indicate better performance on each metric.
               </Text>
               
-              <MotionBox 
-                position="relative" 
-                height="400px" 
-                width="100%" 
-                mb={6}
-                display="block"
-                minHeight="400px"
-                overflow="hidden"
-                variants={chartAnimationVariants}
-                initial="hidden"
-                animate={isChartReady ? "visible" : "hidden"}
-              >
-                {isChartReady && (
-                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
-                    <BarChart
-                      data={modelPerformanceData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke={borderColor} />
-                      <XAxis dataKey="name" tick={{ fill: textColor }} />
-                      <YAxis 
-                        domain={[0.7, 0.9]} 
-                        tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
-                        tick={{ fill: textColor }}
-                      />
-                      <RechartsTooltip 
-                        formatter={(value) => [`${(value * 100).toFixed(1)}%`, '']}
-                        contentStyle={{
-                          backgroundColor: cardBg,
-                          borderColor: cardBorder,
-                          color: textColor
-                        }}
-                      />
-                      <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
-                      <Bar dataKey="Ensemble" fill="#8884d8" name="Ensemble Model" animationDuration={1500} animationEasing="ease-out" />
-                      <Bar dataKey="Random Forest" fill="#82ca9d" name="Random Forest" animationDuration={1500} animationEasing="ease-out" />
-                      <Bar dataKey="Logistic Regression" fill="#ffc658" name="Logistic Regression" animationDuration={1500} animationEasing="ease-out" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </MotionBox>
+              <AnimatePresence mode="wait">
+                <MotionBox 
+                  key={`model-perf-${isChartReady}`}
+                  position="relative" 
+                  height="400px" 
+                  width="100%" 
+                  mb={6}
+                  display="block"
+                  minHeight="400px"
+                  overflow="hidden"
+                  variants={chartAnimationVariants}
+                  initial="hidden"
+                  animate={isChartReady ? "visible" : "hidden"}
+                  exit="exit"
+                  whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
+                >
+                  {!isChartReady && (
+                    <Flex justify="center" align="center" height="100%" width="100%">
+                      <MotionBox
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Spinner 
+                          size="xl" 
+                          thickness="4px" 
+                          color="blue.500" 
+                          speed="0.8s"
+                          emptyColor="gray.200"
+                        />
+                      </MotionBox>
+                    </Flex>
+                  )}
+                  {isChartReady && (
+                    <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
+                      <BarChart
+                        data={modelPerformanceData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        {...barChartAnimationProps}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke={borderColor} />
+                        <XAxis dataKey="name" tick={{ fill: textColor }} />
+                        <YAxis 
+                          domain={[0.7, 0.9]} 
+                          tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+                          tick={{ fill: textColor }}
+                        />
+                        <RechartsTooltip 
+                          formatter={(value) => [`${(value * 100).toFixed(1)}%`, '']}
+                          contentStyle={{
+                            backgroundColor: cardBg,
+                            borderColor: cardBorder,
+                            color: textColor,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            borderRadius: '6px'
+                          }}
+                          animationDuration={300}
+                        />
+                        <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
+                        <Bar 
+                          dataKey="Ensemble" 
+                          fill="#8884d8" 
+                          name="Ensemble Model" 
+                          animationBegin={0}
+                          animationDuration={1500} 
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="Random Forest" 
+                          fill="#82ca9d" 
+                          name="Random Forest" 
+                          animationBegin={200}
+                          animationDuration={1500} 
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="Logistic Regression" 
+                          fill="#ffc658" 
+                          name="Logistic Regression" 
+                          animationBegin={400}
+                          animationDuration={1500} 
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </MotionBox>
+              </AnimatePresence>
               
               <Button 
                 leftIcon={<InfoIcon />} 
@@ -510,91 +620,112 @@ const ExplainableAi = () => {
             <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="sm" bg={bgColor} mb={6}>
               <Flex align="center" mb={4}>
                 <Icon as={FaPercentage} mr={2} color="blue.500" />
-                <Heading size="md" color="textPrimary">
-                  Risk Threshold Analysis
-                </Heading>
+                <Heading size="md" color="textPrimary">Risk Thresholds</Heading>
                 <Spacer />
-                <Tooltip label="How we determine when to classify someone as high-risk">
+                <Tooltip label="This chart shows the trade-off between false positives and false negatives at different risk thresholds">
                   <InfoIcon color="blue.500" />
                 </Tooltip>
               </Flex>
+              
               <Text mb={6} color={textSecondary}>
-                We use a probability threshold of 0.5 (50%) to determine risk categories. This chart shows how different thresholds 
-                would affect false positive and false negative rates.
+                This chart shows how different risk thresholds affect the model's performance. A lower threshold 
+                captures more heart disease cases but may result in more false alarms, while a higher threshold 
+                reduces false alarms but may miss more actual cases.
               </Text>
               
-              <MotionBox 
-                position="relative" 
-                height="400px" 
-                width="100%" 
-                mb={6}
-                display="block"
-                minHeight="400px"
-                overflow="hidden"
-                variants={chartAnimationVariants}
-                initial="hidden"
-                animate={isChartReady ? "visible" : "hidden"}
-              >
-                {isChartReady && (
-                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
-                    <LineChart
-                      data={riskThresholdData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke={borderColor} />
-                      <XAxis 
-                        dataKey="threshold" 
-                        label={{ 
-                          value: 'Risk Threshold', 
-                          position: 'insideBottom', 
-                          offset: -5,
-                          style: { fill: textColor }
-                        }}
-                        tick={{ fill: textColor }}
-                      />
-                      <YAxis 
-                        label={{ 
-                          value: 'Error Rate', 
-                          angle: -90, 
-                          position: 'insideLeft',
-                          style: { fill: textColor }
-                        }}
-                        tick={{ fill: textColor }}
-                        tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
-                      />
-                      <RechartsTooltip 
-                        formatter={(value) => [`${(value * 100).toFixed(0)}%`, '']}
-                        contentStyle={{
-                          backgroundColor: cardBg,
-                          borderColor: cardBorder,
-                          color: textColor
-                        }}
-                      />
-                      <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="False Positives" 
-                        stroke="#8884d8" 
-                        activeDot={{ r: 8 }}
-                        strokeWidth={2}
-                        name="False Alarms"
-                        animationDuration={2000}
-                        animationEasing="ease-in-out"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="False Negatives" 
-                        stroke="#ff8042" 
-                        activeDot={{ r: 8 }}
-                        strokeWidth={2}
-                        name="Missed Cases"
-                        animationDuration={2000}
-                        animationEasing="ease-in-out"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </MotionBox>
+              <AnimatePresence mode="wait">
+                <MotionBox 
+                  key={`risk-thresh-${isChartReady}`}
+                  position="relative" 
+                  height="400px" 
+                  width="100%" 
+                  mb={6}
+                  display="block"
+                  minHeight="400px"
+                  overflow="hidden"
+                  variants={chartAnimationVariants}
+                  initial="hidden"
+                  animate={isChartReady ? "visible" : "hidden"}
+                  exit="exit"
+                  whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
+                >
+                  {!isChartReady && (
+                    <Flex justify="center" align="center" height="100%" width="100%">
+                      <MotionBox
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Spinner 
+                          size="xl" 
+                          thickness="4px" 
+                          color="blue.500" 
+                          speed="0.8s"
+                          emptyColor="gray.200"
+                        />
+                      </MotionBox>
+                    </Flex>
+                  )}
+                  {isChartReady && (
+                    <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
+                      <LineChart
+                        data={riskThresholdData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        {...lineChartAnimationProps}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke={borderColor} />
+                        <XAxis 
+                          dataKey="threshold" 
+                          tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} 
+                          domain={[0.1, 0.9]}
+                          tick={{ fill: textColor }}
+                        />
+                        <YAxis 
+                          tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+                          domain={[0, 0.4]}
+                          tick={{ fill: textColor }}
+                        />
+                        <RechartsTooltip 
+                          formatter={(value, name) => [
+                            `${(value * 100).toFixed(1)}%`, 
+                            name === 'False Positives' ? 'False Alarms' : 'Missed Cases'
+                          ]}
+                          contentStyle={{
+                            backgroundColor: cardBg,
+                            borderColor: cardBorder,
+                            color: textColor,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            borderRadius: '6px'
+                          }}
+                          labelFormatter={(value) => `Threshold: ${(value * 100).toFixed(0)}%`}
+                          animationDuration={300}
+                        />
+                        <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="False Positives" 
+                          stroke="#ff7300" 
+                          strokeWidth={2} 
+                          activeDot={{ r: 6 }} 
+                          dot={{ r: 3 }}
+                          animationBegin={0}
+                          animationDuration={2000}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="False Negatives" 
+                          stroke="#0088fe" 
+                          strokeWidth={2} 
+                          activeDot={{ r: 6 }}
+                          dot={{ r: 3 }}
+                          animationBegin={400}
+                          animationDuration={2000}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
+                </MotionBox>
+              </AnimatePresence>
               
               <Button 
                 leftIcon={<InfoIcon />} 
@@ -701,50 +832,85 @@ const ExplainableAi = () => {
                 The chart below shows the distribution of heart disease cases in the training data.
               </Text>
               
-              <MotionBox 
-                position="relative" 
-                height="400px" 
-                width="100%" 
-                mb={6}
-                display="block"
-                minHeight="400px"
-                overflow="hidden"
-                variants={chartAnimationVariants}
-                initial="hidden"
-                animate={isChartReady ? "visible" : "hidden"}
-              >
-                {isChartReady && (
-                  <ResponsiveContainer width="100%" height={400} minWidth={300} minHeight={300} aspect={1.5}>
-                    <PieChart>
-                      <Pie
-                        data={distributionData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={120}
-                        fill="#8884d8"
-                        dataKey="value"
-                        animationDuration={1500}
-                        animationEasing="ease-out"
+              <AnimatePresence mode="wait">
+                <MotionBox 
+                  key={`dataset-${isChartReady}`}
+                  position="relative" 
+                  height="400px" 
+                  width="100%" 
+                  mb={6}
+                  display="block"
+                  minHeight="400px"
+                  overflow="hidden"
+                  variants={chartAnimationVariants}
+                  initial="hidden"
+                  animate={isChartReady ? "visible" : "hidden"}
+                  exit="exit"
+                  whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
+                >
+                  {!isChartReady && (
+                    <Flex justify="center" align="center" height="100%" width="100%">
+                      <MotionBox
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
                       >
-                        {distributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip 
-                        formatter={(value) => [value, 'Patients']}
-                        contentStyle={{
-                          backgroundColor: cardBg,
-                          borderColor: cardBorder,
-                          color: textColor
-                        }}
-                      />
-                      <Legend formatter={(value) => <span style={{ color: textColor }}>{value}</span>} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </MotionBox>
+                        <Spinner 
+                          size="xl" 
+                          thickness="4px" 
+                          color="blue.500" 
+                          speed="0.8s"
+                          emptyColor="gray.200"
+                        />
+                      </MotionBox>
+                    </Flex>
+                  )}
+                  {isChartReady && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart width={400} height={400} {...pieChartAnimationProps}>
+                        <Pie
+                          data={distributionData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={120}
+                          innerRadius={60}
+                          fill="#8884d8"
+                          paddingAngle={2}
+                          dataKey="value"
+                          animationBegin={300}
+                          animationDuration={1500}
+                        >
+                          {distributionData.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={entry.color} 
+                              stroke={borderColor}
+                              strokeWidth={1}
+                            />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          formatter={(value, name, props) => [
+                            value, 
+                            `${name} Cases`
+                          ]}
+                          contentStyle={{
+                            backgroundColor: cardBg,
+                            borderColor: cardBorder,
+                            color: textColor,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            borderRadius: '6px',
+                            padding: '8px 12px'
+                          }}
+                          animationDuration={300}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </MotionBox>
+              </AnimatePresence>
               
               <Button 
                 leftIcon={<InfoIcon />} 

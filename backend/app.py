@@ -8,11 +8,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 import logging
 
-# Import Gemini utilities
+# Import using the proper namespace structure
 from backend.utils.gemini_utils import get_health_advice, answer_health_question
 from backend.model_comparison import get_comparison_prediction
-
-# Import SHAP model explainer
 from backend.model_explainer import get_shap_values
 
 # Configure logging
@@ -22,13 +20,14 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
+# Create Flask application with explicit namespace
+app = Flask("backend.app")
 
 # Configure CORS properly to allow requests from your frontend
 CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", 
                                          "http://127.0.0.1:3000", 
                                          "https://heart-disease-prediction.netlify.app",  # Your Netlify domain - update this!
-                                         "https://*.netlify.app"],                       # Allow any Netlify subdomain
+                                         "https://heart-disease-prediction-tpnh.onrender.com/"],                       # Allow any Netlify subdomain
                               "methods": ["GET", "POST", "OPTIONS"], 
                               "allow_headers": ["Content-Type", "Authorization"]}})
 

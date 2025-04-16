@@ -41,8 +41,8 @@ SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(DB_DIR, "heart_disease.db")}
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Gemini AI Configuration
-GEMINI_API_KEY = os.getenv('VITE_GEMINI_API_KEY', '')
-GEMINI_MODEL = os.getenv('VITE_GEMINI_MODEL', 'gemini-1.5-pro')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY') or os.getenv('VITE_GEMINI_API_KEY', '')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL') or os.getenv('VITE_GEMINI_MODEL', 'gemini-1.5-pro')
 GEMINI_CONFIG = {
     'temperature': 0.7,
     'top_k': 40,

@@ -14,13 +14,15 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Get paths from environment variables or use defaults
-MODEL_PATH = os.getenv('MODEL_PATH', './model/heart_model.pkl')
-SCALER_PATH = os.getenv('SCALER_PATH', './model/scaler.pkl')
-NN_MODEL_PATH = os.getenv('NN_MODEL_PATH', './model/nn_model.pkl')
-EXPLAINER_PATH = os.getenv('EXPLAINER_PATH', './model/shap_explainer.pkl')
-# Update this line in model_explainer.py
-DATASET_PATH = os.getenv('DATASET_PATH', 'C://Users//DELL//OneDrive//Desktop//Mini Project//dataset//heart.csv')
+# Get the current directory for absolute paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Get paths from environment variables or use defaults with absolute paths
+MODEL_PATH = os.getenv('MODEL_PATH', os.path.join(current_dir, 'model', 'heart_model.pkl'))
+SCALER_PATH = os.getenv('SCALER_PATH', os.path.join(current_dir, 'model', 'scaler.pkl'))
+NN_MODEL_PATH = os.getenv('NN_MODEL_PATH', os.path.join(current_dir, 'model', 'nn_model.pkl'))
+EXPLAINER_PATH = os.getenv('EXPLAINER_PATH', os.path.join(current_dir, 'model', 'shap_explainer.pkl'))
+DATASET_PATH = os.getenv('DATASET_PATH', os.path.join(current_dir, 'dataset', 'heart.csv'))
 
 # Feature names
 feature_names = [

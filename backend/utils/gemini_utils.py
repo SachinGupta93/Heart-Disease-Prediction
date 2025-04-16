@@ -11,11 +11,37 @@ logger = setup_logger(__name__, log_file)
 def initialize_gemini():
     """Initialize Gemini API with API key from configuration."""
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
+        # Try multiple sources for the API key
+        api_key = GEMINI_API_KEY
+        
+        # Debug output
+        logger.debug(f"GEMINI_API_KEY from config: {'Found' if api_key else 'Not found'}")
+        
+        # If not found in config, try direct environment variable access
+        if not api_key:
+            api_key = os.getenv('GEMINI_API_KEY', '')
+            logger.debug(f"GEMINI_API_KEY from env: {'Found' if api_key else 'Not found'}")
+            
+        # Also check if it's under the VITE prefix (common in frontend code)
+        if not api_key:
+            api_key = os.getenv('VITE_GEMINI_API_KEY', '')
+            logger.debug(f"VITE_GEMINI_API_KEY from env: {'Found' if api_key else 'Not found'}")
+            
+        if not api_key:
+            logger.warning("Gemini API key not found in any configuration source")
+            print("[WARNING] Gemini API key not configured. AI features will not work.")
+            print("[INFO] Set GEMINI_API_KEY in your environment variables or .env file")
+            return False
+            
+        # Configure the Gemini API with the found key
+        print(f"[DEBUG] Configuring Gemini API with key: {api_key[:5]}...")
+        genai.configure(api_key=api_key)
         logger.info("Gemini API initialized successfully")
+        print("[INFO] Gemini API initialized successfully")
         return True
     except Exception as e:
         logger.error(f"Failed to initialize Gemini API: {str(e)}")
+        print(f"[ERROR] Failed to initialize Gemini API: {str(e)}")
         return False
 
 def get_gemini_response(prompt, safety_settings=None):
@@ -29,13 +55,17 @@ def get_gemini_response(prompt, safety_settings=None):
     Returns:
         str: The generated response or error message
     """
-    if not GEMINI_API_KEY:
+    # Directly get API key from environment or use hardcoded value
+    api_key = os.getenv('GEMINI_API_KEY') or os.getenv('VITE_GEMINI_API_KEY') 
+    
+    if not api_key:
         logger.warning("Gemini API key not found in configuration")
         return "Gemini API key is not configured."
     
     try:
-        # Initialize the API if not done already
-        initialize_gemini()
+        # Configure the Gemini API directly with the found key
+        genai.configure(api_key=api_key)
+        logger.info("Gemini API configured successfully")
         
         # Configure the model for concise responses
         model = genai.GenerativeModel(
