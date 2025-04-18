@@ -4,9 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import theme from './theme';
 
 // Import components
-import LoadingScreen from './components/LoadingScreen';
 import Navbar from './components/Navbar';
-import Header from './components/Header'
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary'; 
 import PredictionResult from './components/PredictionResult'; // Changed from lazy import to static import
@@ -14,7 +12,7 @@ import PredictionResult from './components/PredictionResult'; // Changed from la
 // Lazy-loaded components
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const PredictionForm = lazy(() => import('./components/PredictionForm'));
-// const RiskSimulator = lazy(() => import('./components/RiskSimulator'));
+
 const PredictionHistory = lazy(() => import('./components/PredictionHistory'));
 const ShapExplanation = lazy(() => import('./components/ShapExplanation')); // Add explicit import for ShapExplanation
 const HealthInformation = lazy(() => import('./components/HealthInformation'));

@@ -1,9 +1,9 @@
 import React from 'react';
 import {
   Box, Container, Heading, Text, Flex, SimpleGrid, HStack, VStack,
-  Skeleton, SkeletonText, SkeletonCircle, useColorModeValue, Button, Icon, Divider, Badge,
-  keyframes
+  Skeleton, SkeletonText, SkeletonCircle, useColorModeValue, Button, Icon, Divider, Badge
 } from '@chakra-ui/react';
+import { keyframes } from '@emotion/react';
 import { FaHeartbeat, FaChartBar, FaHistory, FaUserMd, FaClipboardCheck, FaCalendarAlt, FaServer, FaComments, FaArrowRight, FaInfoCircle, FaChartLine } from 'react-icons/fa';
 
 const DashboardSkeleton = () => {
