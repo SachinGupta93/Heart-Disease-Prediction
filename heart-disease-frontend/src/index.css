@@ -19,6 +19,9 @@ body {
   min-height: 100vh;
 }
 
+/* Import responsive utilities */
+@import './styles/responsive-utils.css';
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

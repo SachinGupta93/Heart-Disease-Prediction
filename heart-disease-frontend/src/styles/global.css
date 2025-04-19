@@ -99,8 +99,133 @@ body {
     box-shadow: 0 0 0 1px #3182ce;
   }
   
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
+  /* Enhanced Responsive Utilities */
+
+  /* Base responsive container */
+  .responsive-container {
+    width: 100%;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  
+  /* Responsive headings */
+  .responsive-heading {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  /* Chart responsiveness */
+  .responsive-chart {
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  .feature-impact-chart {
+    font-size: 11px;
+  }
+
+  .responsive-chart-label {
+    font-size: 10px;
+  }
+
+  .shap-radar-chart {
+    margin-bottom: 20px;
+  }
+
+  /* Mobile touch targets - improving clickable areas */
+  .mobile-touch-target {
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  /* Text optimization for mobile */
+  .mobile-text-optimize {
+    line-height: 1.4;
+    word-break: keep-all;
+    hyphens: auto;
+  }
+
+  .feature-card-responsive {
+    overflow: hidden;
+  }
+
+  .feature-name {
+    max-width: 100%;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Enhanced Media Queries */
+  
+  /* Small mobile devices */
+  @media (max-width: 350px) {
+    .feature-name {
+      font-size: 13px;
+    }
+    
+    .feature-value {
+      font-size: 11px;
+    }
+
+    .responsive-chart-label {
+      font-size: 8px;
+    }
+
+    .mobile-text-optimize {
+      font-size: 11px;
+    }
+    
+    .responsive-container {
+      padding: 0.5rem;
+    }
+    
+    .responsive-heading {
+      font-size: 1.2rem;
+    }
+  }
+
+  /* Mobile devices */
+  @media (max-width: 480px) {
+    .responsive-container {
+      padding: 0.75rem;
+    }
+    
+    .responsive-heading {
+      font-size: 1.3rem;
+    }
+
+    /* Hide non-essential UI on mobile */
+    .mobile-optional {
+      display: none;
+    }
+    
+    /* Chart optimizations for mobile */
+    .responsive-chart {
+      margin: 0 -10px;
+      width: calc(100% + 20px);
+    }
+    
+    /* Better spacing for mobile content */
+    .mobile-stack > * + * {
+      margin-top: 12px;
+    }
+    
+    /* Improve form elements on mobile */
+    input, select, button {
+      min-height: 44px; /* Minimum touch target size */
+    }
+  }
+
+  /* Tablet devices */
+  @media (min-width: 481px) and (max-width: 768px) {
     .responsive-container {
       padding: 1rem;
     }
@@ -108,5 +233,72 @@ body {
     .responsive-heading {
       font-size: 1.5rem;
     }
+    
+    /* Tablet optimizations */
+    input, select, button {
+      min-height: 38px;
+    }
   }
-  
+
+  /* Larger screens */
+  @media (min-width: 769px) {
+    .responsive-container {
+      max-width: 1200px;
+      padding: 1.5rem;
+    }
+    
+    .responsive-heading {
+      font-size: 1.8rem;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    
+    body {
+      background: white !important;
+      color: black !important;
+    }
+    
+    .print-full-width {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    /* Ensure charts print properly */
+    .responsive-chart {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+  }
+
+  /* High contrast mode for accessibility */
+  @media (prefers-contrast: high) {
+    body {
+      color: #000 !important;
+      background-color: #fff !important;
+    }
+    
+    * {
+      border-color: #000 !important;
+    }
+  }
+
+  /* Dark mode preference */
+  @media (prefers-color-scheme: dark) {
+    .color-scheme-adaptive {
+      background-color: #1a202c;
+      color: #e2e8f0;
+    }
+  }
+
+  /* Font scaling for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }

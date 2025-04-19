@@ -1,0 +1,166 @@
+/* 
+ * RESPONSIVE UTILITIES
+ * This file contains utility classes and media queries to enhance the responsive design
+ * across the heart disease prediction application.
+ */
+
+/* Responsive breakpoint variables */
+:root {
+  --breakpoint-sm: 30em;     /* 480px */
+  --breakpoint-md: 48em;     /* 768px */
+  --breakpoint-lg: 62em;     /* 992px */
+  --breakpoint-xl: 80em;     /* 1280px */
+  --breakpoint-2xl: 96em;    /* 1536px */
+}
+
+/* Mobile-first responsive typography */
+html {
+  font-size: 14px;
+}
+
+@media screen and (min-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media screen and (min-width: 992px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Chart responsiveness */
+.responsive-chart {
+  width: 100%;
+  height: auto;
+  min-height: 250px;
+}
+
+@media screen and (max-width: 480px) {
+  .responsive-chart {
+    min-height: 200px;
+  }
+}
+
+/* Card responsiveness */
+.responsive-card {
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.responsive-card:hover {
+  transform: translateY(-2px);
+}
+
+@media screen and (max-width: 480px) {
+  .responsive-card {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Mobile optimizations */
+@media screen and (max-width: 480px) {
+  /* Optimize touch targets for mobile */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Reduce padding on mobile */
+  .mobile-reduced-padding {
+    padding: 0.75rem !important;
+  }
+  
+  /* Stack elements on mobile */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  /* Center content on mobile */
+  .mobile-center {
+    text-align: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Enhance text readability on mobile */
+  .mobile-text-optimize {
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Hide elements on mobile */
+  .mobile-hide {
+    display: none !important;
+  }
+  
+  /* Truncate text on mobile */
+  .mobile-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
+/* Tablet optimizations */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .tablet-optimized {
+    padding: 1rem !important;
+  }
+  
+  .tablet-grid-2col {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Chart label responsiveness */
+@media screen and (max-width: 768px) {
+  .responsive-chart-label {
+    font-size: 0.7rem !important;
+  }
+}
+
+/* Utility for feature cards in SHAP explanations */
+.feature-card-responsive {
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+@media screen and (max-width: 768px) {
+  .feature-card-responsive {
+    padding: 0.75rem !important;
+  }
+  
+  .feature-card-responsive .feature-name {
+    font-size: 0.9rem !important;
+  }
+  
+  .feature-card-responsive .feature-value {
+    font-size: 0.85rem !important;
+  }
+}
+
+/* Responsive form fields */
+@media screen and (max-width: 768px) {
+  .form-field-responsive input,
+  .form-field-responsive select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive radar chart specifically for SHAP values */
+@media screen and (max-width: 480px) {
+  .shap-radar-chart {
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 280px !important;
+  }
+}
