@@ -1,4 +1,5 @@
-# Heart Disease Prediction Project
+<img width="1156" height="644" alt="image" src="https://github.com/user-attachments/assets/39a7b690-eff3-41a5-93c5-911385c01614" />
+
 
 ## Overview
 
